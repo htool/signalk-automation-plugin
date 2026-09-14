@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Signal K Automations</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Automations</h1>
+      <p class="meta" id="shaLine">Loading…</p>
+    </header>
+    <main>
+      <section>
+        <h2>Automations</h2>
+        <div id="autos"></div>
+      </section>
+      <section>
+        <h2>Helpers</h2>
+        <div id="helpers"></div>
+      </section>
+      <section>
+        <h2>Live YAML</h2>
+        <pre id="yaml" class="yaml"></pre>
+      </section>
+      <section>
+        <h2>Git commits</h2>
+        <p class="hint">Activate a commit to copy that tree into plugin data and reload. Invalid YAML is rejected; the previous live snapshot stays.</p>
+        <div id="commits"></div>
+      </section>
+      <section id="detail" hidden>
+        <h2 id="detailTitle">Runs</h2>
+        <div id="traces"></div>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

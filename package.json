@@ -1,0 +1,40 @@
+{
+  "name": "signalk-automation-plugin",
+  "version": "0.0.1",
+  "description": "Home Assistant-like YAML automations for Signal K",
+  "main": "plugin/index.js",
+  "keywords": [
+    "signalk-node-server-plugin",
+    "signalk-webapp",
+    "signalk-category-digital-switching",
+    "automation"
+  ],
+  "license": "ISC",
+  "author": "hans@defect.org",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/htool/signalk-automation-plugin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/htool/signalk-automation-plugin/issues"
+  },
+  "homepage": "https://github.com/htool/signalk-automation-plugin#readme",
+  "signalk": {
+    "displayName": "Automations"
+  },
+  "signalk-plugin-enabled-by-default": false,
+  "files": [
+    "plugin",
+    "lib",
+    "public",
+    "examples",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js && node scripts/test-npm-publish-check.js"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  }
+}

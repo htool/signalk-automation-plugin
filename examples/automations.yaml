@@ -1,0 +1,98 @@
+helpers:
+  starlink_manual:
+    type: boolean
+    name: Starlink handmatig
+    default: false
+    on_start: restore
+    latch_on_external_put: electrical.switches.starlink.state
+  charge_hold:
+    type: boolean
+    name: Thuis 60–80% laden
+    default: true
+    on_start: default
+
+zones:
+  home_harbour:
+    name: Thuishaven
+    lat: 52.37
+    lon: 5.22
+    radius: 150
+
+automations:
+  - id: start_anchorwatch
+    alias: Ketting uit → anchorwatch
+    enabled: false
+    trigger:
+      - path: winches.windlass.rode
+        above: 2
+        unit: m
+        for: 10s
+    action:
+      - put: navigation.anchor.watch
+        value: true
+
+  - id: shore_charge
+    alias: Walstroom laadbeleid
+    enabled: false
+    trigger:
+      - path: electrical.chargers.shore.connected
+      - path: electrical.batteries.house.capacity.stateOfCharge
+      - path: navigation.position
+    choose:
+      - alias: onderweg volladen
+        conditions:
+          - path: electrical.chargers.shore.connected
+            is: true
+          - not:
+              zone: home_harbour
+        action:
+          - put: electrical.switches.dolphinCharger.state
+            value: 1
+      - alias: thuis onder 60%
+        conditions:
+          - path: electrical.chargers.shore.connected
+            is: true
+          - zone: home_harbour
+          - path: electrical.batteries.house.capacity.stateOfCharge
+            below: 0.6
+        action:
+          - put: electrical.switches.dolphinCharger.state
+            value: 1
+      - alias: thuis boven 80%
+        conditions:
+          - zone: home_harbour
+          - path: electrical.batteries.house.capacity.stateOfCharge
+            above: 0.8
+        action:
+          - put: electrical.switches.dolphinCharger.state
+            value: 0
+
+  - id: starlink_standby
+    alias: Starlink standby-update
+    enabled: false
+    trigger:
+      - schedule: "0 4 * * *"
+    condition:
+      - helper: starlink_manual
+        is: false
+    action:
+      - put: electrical.switches.starlink.state
+        value: true
+      - delay: 15m
+      - put: electrical.switches.starlink.state
+        value: false
+
+  - id: harbour_via_script
+    alias: Voorbeeld script-conditie
+    enabled: false
+    trigger:
+      - path: electrical.chargers.shore.connected
+        is: true
+    condition:
+      - run: echo.sh
+        equals: home
+    action:
+      - notify:
+          path: electrical.chargers.shore
+          state: normal
+          message: script said home
