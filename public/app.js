@@ -135,7 +135,17 @@ function fmtRunRecord (t) {
 
 function fmtTime (iso) {
   if (!iso) return ''
-  try { return new Date(iso).toLocaleString() } catch (_) { return iso }
+  try {
+    return new Date(iso).toLocaleString('nl-NL', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    })
+  } catch (_) { return iso }
 }
 
 function escapeHtml (s) {
