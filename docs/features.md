@@ -7,6 +7,7 @@ Ordered slices. **Tests on every feature slice.** Docs-only slices do not change
 - YAML load (`helpers`, `zones`, `automations`); duplicate ids error
 - Helper `on_start` restore / default / none + persist
 - Engine: path above/below/is, zone, choose, schedule cron, PUT/helper/notify/delay/run; trigger `round:`
+- Trigger list is any (path/helper/schedule); conditions stay all
 - Script sandbox + stderr = fail
 - Plugin lifecycle; SK 2.x GET vs `/plugins/` writes
 - Webapp: left automations + helpers, right coloured YAML for the selection, git commit pulldown with diff + reset

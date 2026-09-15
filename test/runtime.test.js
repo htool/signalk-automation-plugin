@@ -424,6 +424,49 @@ test('cron fires again the next day without an explicit rising edge', async () =
   assert.equal(puts.length, 2)
 })
 
+test('mixed path + schedule: path change runs off the cron minute', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-mixtrig-'))
+  const yamlDir = path.join(dataDir, 'yaml')
+  fs.mkdirSync(yamlDir)
+  fs.writeFileSync(
+    path.join(yamlDir, 'a.yaml'),
+    [
+      'automations:',
+      '  - id: shore_charge',
+      '    trigger:',
+      '      - path: sensors.presence.dolphinshelly',
+      '      - helper: depart_prep',
+      '      - schedule: "*/15 * * * *"',
+      '    action:',
+      '      - put: electrical.switches.orionCharger.state',
+      '        value: 1',
+      ''
+    ].join('\n')
+  )
+  const puts = []
+  let now = new Date(2026, 8, 15, 15, 7, 0).getTime()
+  const rt = new Runtime({
+    pluginId: 'signalk-automation-plugin',
+    dataDir,
+    automationsDir: yamlDir,
+    scriptsDir: yamlDir,
+    now: () => now,
+    put: async (p, v) => { puts.push([p, v]) },
+    notify: async () => {},
+    sleep: async () => {},
+    log: { info () {}, debug () {}, error () {} }
+  })
+  rt.load()
+  rt.setEnabled('shore_charge', true)
+  rt.setPathValue('sensors.presence.dolphinshelly', true)
+  await rt.handlePathChange('sensors.presence.dolphinshelly', true)
+  assert.equal(puts.length, 1)
+  rt.setPathValue('electrical.switches.orionCharger.state', 0)
+  now = new Date(2026, 8, 15, 15, 15, 0).getTime()
+  await rt.tickSchedule(new Date(now))
+  assert.equal(puts.length, 2)
+})
+
 test('round on a trigger ignores sub-step path noise', async () => {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-round-'))
   const yamlDir = path.join(dataDir, 'yaml')

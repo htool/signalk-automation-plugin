@@ -4,7 +4,7 @@ YAML automations for Signal K. Engine in `lib/`, SK glue in `plugin/index.js`, d
 
 ## Runtime
 
-On `start`, `Runtime.load()` reads YAML from plugin-data `live/` if present, else `automationsDir`. Helpers are initialised from YAML `on_start` plus `state.json`. Path deltas go through `handlePathChange`; cron triggers via a 15s tick. Trigger `round:` quantizes the changed value (nearest multiple; lat/lon for GPS) and skips the run when the quantized value did not change.
+On `start`, `Runtime.load()` reads YAML from plugin-data `live/` if present, else `automationsDir`. Helpers are initialised from YAML `on_start` plus `state.json`. Path deltas go through `handlePathChange`; cron triggers via a 15s tick. A trigger list is **any** (path, helper, or schedule); conditions stay **all**. Trigger `round:` quantizes the changed value (nearest multiple; lat/lon for GPS) and skips the run when the quantized value did not change.
 
 **Make live** (`activateCommit`) `git archive`s the commit, but only the `automationsDir` tree (so a plugin checkout with YAML in `examples/` does not dump `plugin/` / `lib/` into `live/`). Incoming YAML is validated **before** swapping `live/`; any error leaves the previous snapshot on disk.
 

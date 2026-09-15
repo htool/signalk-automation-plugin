@@ -303,6 +303,40 @@ test('cronMatch 04:00', () => {
   assert.equal(engine.cronMatch('0 5 * * *', d), false)
 })
 
+test('cronMatch every 15 minutes', () => {
+  assert.equal(engine.cronMatch('*/15 * * * *', new Date(2026, 8, 15, 15, 0, 0)), true)
+  assert.equal(engine.cronMatch('*/15 * * * *', new Date(2026, 8, 15, 15, 15, 0)), true)
+  assert.equal(engine.cronMatch('*/15 * * * *', new Date(2026, 8, 15, 15, 7, 0)), false)
+})
+
+test('path trigger still fires when a schedule is also listed', async () => {
+  const auto = {
+    id: 'shore_charge',
+    trigger: [
+      { path: 'sensors.presence.dolphinshelly' },
+      { schedule: '*/15 * * * *' }
+    ],
+    condition: [],
+    action: [{ put: 'electrical.switches.orionCharger.state', value: 1 }],
+    choose: []
+  }
+  const puts = []
+  const record = await engine.evaluateAutomation(auto, {
+    values: { 'sensors.presence.dolphinshelly': true },
+    zones: {},
+    enabled: true,
+    trigger: { path: 'sensors.presence.dolphinshelly', value: true },
+    now: new Date(2026, 8, 15, 15, 7, 0).getTime(),
+    put: async (p, v) => { puts.push([p, v]) },
+    notify: async () => {},
+    setHelper: () => {},
+    sleep: async () => {},
+    runScript: async () => ({ ok: true, value: '' })
+  })
+  assert.equal(record.result, 'ok')
+  assert.deepEqual(puts, [['electrical.switches.orionCharger.state', 1]])
+})
+
 test('quantizeValue rounds numbers and lat/lon', () => {
   assert.equal(engine.quantizeValue(230.4, 1), 230)
   assert.equal(engine.quantizeValue(230.6, 1), 231)

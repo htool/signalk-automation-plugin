@@ -11,7 +11,7 @@ Not Node-RED. Not a Home Assistant YAML clone. Actions are Signal K PUTs, helper
   - `restore` — survive reboot (save in plugin data, restore on start)
   - `default` — set `default` on every start
   - `none` — do nothing on start
-- Path triggers, `choose`, zones, cron `schedule`
+- Path triggers, `choose`, zones, cron `schedule` (trigger list is **any**; conditions are **all**)
 - Trigger `round:` quantizes numbers (and lat/lon) so 230.1 V and 230.4 V do not both fire
 - Actions: `put`, `helper`, `notify`, `delay`, `run`
 - `run:` executes a file under configured `scriptsDir`. **stdout is the value; any stderr is fail**
