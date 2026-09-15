@@ -4,36 +4,63 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Signal K Automations</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" href="icon.png" />
+    <link rel="stylesheet" href="style.css?v=20260915log" />
   </head>
   <body>
     <header>
-      <h1>Automations</h1>
-      <p class="meta" id="shaLine">Loading…</p>
+      <div class="header-main">
+        <h1>Automations</h1>
+        <p class="meta" id="shaLine">Loading…</p>
+      </div>
+      <div class="header-actions">
+        <button type="button" id="reloadAutos">Reload automations</button>
+        <form id="loginForm" class="login-form">
+          <input id="loginUser" name="username" autocomplete="username" placeholder="user" />
+          <input id="loginPass" name="password" type="password" autocomplete="current-password" placeholder="password" />
+          <button type="submit">Log in</button>
+          <span id="loginErr" class="error"></span>
+        </form>
+        <p id="loginWho" class="muted" hidden></p>
+      </div>
     </header>
-    <main>
-      <section>
+    <main class="split">
+      <aside>
         <h2>Automations</h2>
         <div id="autos"></div>
-      </section>
-      <section>
         <h2>Helpers</h2>
         <div id="helpers"></div>
-      </section>
-      <section>
-        <h2>Live YAML</h2>
-        <pre id="yaml" class="yaml"></pre>
-      </section>
-      <section>
-        <h2>Git commits</h2>
-        <p class="hint">Activate a commit to copy that tree into plugin data and reload. Invalid YAML is rejected; the previous live snapshot stays.</p>
-        <div id="commits"></div>
-      </section>
-      <section id="detail" hidden>
-        <h2 id="detailTitle">Runs</h2>
-        <div id="traces"></div>
+        <h2>Zones</h2>
+        <div id="zones"></div>
+        <h2>Switches</h2>
+        <div id="switches"></div>
+      </aside>
+      <section class="pane">
+        <div id="yamlPane">
+          <div class="yaml-head">
+            <h2 id="yamlTitle">YAML</h2>
+            <button type="button" id="runAuto" hidden>Run</button>
+            <div class="git-bar" id="gitBar" hidden>
+              <label class="git-label">
+                Git
+                <select id="commitSelect"></select>
+              </label>
+            </div>
+          </div>
+          <pre id="yaml" class="yaml"></pre>
+          <div id="runLog" class="run-log" hidden>
+            <h2 id="runLogTitle">Run</h2>
+            <div id="runLogBody"></div>
+          </div>
+        </div>
+        <div id="gitDiff" class="git-diff" hidden>
+          <h2>Diff vs live</h2>
+          <pre id="diffView" class="diff"></pre>
+          <p class="hint" id="diffHint"></p>
+          <button class="primary" id="resetGit" type="button">Reset automation git to this version</button>
+        </div>
       </section>
     </main>
-    <script src="app.js"></script>
+    <script src="app.js?v=20260915log"></script>
   </body>
 </html>

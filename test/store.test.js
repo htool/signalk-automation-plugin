@@ -12,11 +12,13 @@ test('state roundtrip', () => {
   const state = store.emptyState()
   state.helpers.manual = true
   state.enabled.a = false
+  state.verbose.a = true
   state.activeSha = 'abc'
   store.saveState(dir, state)
   const loaded = store.loadState(dir)
   assert.equal(loaded.helpers.manual, true)
   assert.equal(loaded.enabled.a, false)
+  assert.equal(loaded.verbose.a, true)
   assert.equal(loaded.activeSha, 'abc')
 })
 
@@ -29,4 +31,15 @@ test('traces keep newest first up to max', () => {
   assert.equal(traces.length, 2)
   assert.equal(traces[0].ts, '3')
   assert.equal(traces[1].ts, '2')
+})
+
+test('switch log keeps newest first up to max', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-sw-'))
+  store.appendSwitchLog(dir, { ts: '1', path: 'a' }, 2)
+  store.appendSwitchLog(dir, { ts: '2', path: 'b' }, 2)
+  store.appendSwitchLog(dir, { ts: '3', path: 'c' }, 2)
+  const log = store.loadSwitchLog(dir)
+  assert.equal(log.length, 2)
+  assert.equal(log[0].ts, '3')
+  assert.equal(log[1].path, 'b')
 })

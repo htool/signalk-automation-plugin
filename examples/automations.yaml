@@ -5,54 +5,69 @@ helpers:
     default: false
     on_start: restore
     latch_on_external_put: electrical.switches.starlink.state
-  charge_hold:
+  depart_prep:
     type: boolean
-    name: Thuis 60–80% laden
-    default: true
-    on_start: default
-
-zones:
-  home_harbour:
-    name: Thuishaven
-    lat: 52.37
-    lon: 5.22
-    radius: 150
+    name: Maak klaar voor vertrek
+    default: false
+    on_start: restore
 
 automations:
-  - id: start_anchorwatch
-    alias: Ketting uit → anchorwatch
-    enabled: false
-    trigger:
-      - path: winches.windlass.rode
-        above: 2
-        unit: m
-        for: 10s
-    action:
-      - put: navigation.anchor.watch
-        value: true
-
   - id: shore_charge
     alias: Walstroom laadbeleid
-    enabled: false
+    zones:
+      home_harbour:
+        name: Thuishaven
+        lat: 52.37
+        lon: 5.22
+        radius: 150
     trigger:
-      - path: electrical.chargers.shore.connected
+      - path: sensors.presence.dolphinshelly
       - path: electrical.batteries.house.capacity.stateOfCharge
-      - path: navigation.position
+        round: 0.01
+      - helper: depart_prep
     choose:
       - alias: onderweg volladen
         conditions:
-          - path: electrical.chargers.shore.connected
+          - path: sensors.presence.dolphinshelly
             is: true
           - not:
               zone: home_harbour
         action:
           - put: electrical.switches.dolphinCharger.state
             value: 1
-      - alias: thuis onder 60%
+      - alias: klaar voor vertrek laden
         conditions:
-          - path: electrical.chargers.shore.connected
+          - path: sensors.presence.dolphinshelly
             is: true
           - zone: home_harbour
+          - helper: depart_prep
+            is: true
+          - path: electrical.batteries.house.capacity.stateOfCharge
+            below: 0.98
+        action:
+          - put: electrical.switches.dolphinCharger.state
+            value: 1
+      - alias: klaar voor vertrek vol
+        conditions:
+          - path: sensors.presence.dolphinshelly
+            is: true
+          - zone: home_harbour
+          - helper: depart_prep
+            is: true
+          - path: electrical.batteries.house.capacity.stateOfCharge
+            above: 0.97
+        action:
+          - put: electrical.switches.dolphinCharger.state
+            value: 0
+          - helper: depart_prep
+            value: false
+      - alias: thuis onder 60%
+        conditions:
+          - path: sensors.presence.dolphinshelly
+            is: true
+          - zone: home_harbour
+          - helper: depart_prep
+            is: false
           - path: electrical.batteries.house.capacity.stateOfCharge
             below: 0.6
         action:
@@ -60,7 +75,11 @@ automations:
             value: 1
       - alias: thuis boven 80%
         conditions:
+          - path: sensors.presence.dolphinshelly
+            is: true
           - zone: home_harbour
+          - helper: depart_prep
+            is: false
           - path: electrical.batteries.house.capacity.stateOfCharge
             above: 0.8
         action:
@@ -69,10 +88,11 @@ automations:
 
   - id: starlink_standby
     alias: Starlink standby-update
-    enabled: false
     trigger:
       - schedule: "0 4 * * *"
     condition:
+      # home_harbour is defined on shore_charge (Walstroom laadbeleid).
+      - zone: home_harbour
       - helper: starlink_manual
         is: false
     action:
@@ -81,18 +101,3 @@ automations:
       - delay: 15m
       - put: electrical.switches.starlink.state
         value: false
-
-  - id: harbour_via_script
-    alias: Voorbeeld script-conditie
-    enabled: false
-    trigger:
-      - path: electrical.chargers.shore.connected
-        is: true
-    condition:
-      - run: echo.sh
-        equals: home
-    action:
-      - notify:
-          path: electrical.chargers.shore
-          state: normal
-          message: script said home

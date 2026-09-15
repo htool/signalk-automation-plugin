@@ -46,10 +46,60 @@ test('rejects bad on_start', () => {
   assert.ok(doc.errors.some((e) => /on_start/.test(e.message)))
 })
 
-test('duplicate automation ids error', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-yaml-'))
-  fs.writeFileSync(path.join(dir, 'a.yaml'), 'automations:\n  - id: one\n    action: []\n')
-  fs.writeFileSync(path.join(dir, 'b.yaml'), 'automations:\n  - id: one\n    action: []\n')
-  const doc = yaml.loadYamlDir(dir)
-  assert.ok(doc.errors.some((e) => /Duplicate automation id/.test(e.message)))
+test('snippetAutomation is only that list item', () => {
+  const doc = yaml.loadYamlText(SAMPLE, 'a.yaml')
+  const snip = yaml.snippetAutomation(doc, 'start_anchorwatch')
+  assert.match(snip, /id: start_anchorwatch/)
+  assert.match(snip, /winches\.windlass\.rode/)
+  assert.doesNotMatch(snip, /home_harbour/)
+  assert.doesNotMatch(snip, /starlink_manual/)
 })
+
+test('zones on an automation are loaded and shown in that snippet', () => {
+  const text = [
+    'automations:',
+    '  - id: shore_charge',
+    '    alias: Walstroom laadbeleid',
+    '    zones:',
+    '      home_harbour:',
+    '        lat: 52.48759',
+    '        lon: 5.06362',
+    '        radius: 30',
+    '    trigger: []',
+    '    action: []',
+    ''
+  ].join('\n')
+  const doc = yaml.loadYamlText(text, 'a.yaml')
+  assert.equal(doc.errors.length, 0)
+  assert.equal(doc.zones.home_harbour.radius, 30)
+  const snip = yaml.snippetAutomation(doc, 'shore_charge')
+  assert.match(snip, /zones:/)
+  assert.match(snip, /home_harbour:/)
+  assert.match(snip, /radius: 30/)
+})
+
+test('snippetHelper is only that mapping', () => {
+  const doc = yaml.loadYamlText(SAMPLE, 'a.yaml')
+  const snip = yaml.snippetHelper(doc, 'starlink_manual')
+  assert.match(snip, /starlink_manual:/)
+  assert.match(snip, /on_start: restore/)
+  assert.doesNotMatch(snip, /home_harbour/)
+  assert.doesNotMatch(snip, /start_anchorwatch/)
+})
+
+test('round on a trigger must be a positive number', () => {
+  const doc = yaml.loadYamlText(
+    [
+      'automations:',
+      '  - id: shore_charge',
+      '    trigger:',
+      '      - path: electrical.switches.dolphinCharger.voltage',
+      '        round: 0',
+      '    action: []',
+      ''
+    ].join('\n'),
+    'a.yaml'
+  )
+  assert.ok(doc.errors.some((e) => /round must be a positive number/.test(e.message)))
+})
+

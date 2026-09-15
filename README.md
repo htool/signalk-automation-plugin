@@ -12,6 +12,7 @@ Not Node-RED. Not a Home Assistant YAML clone. Actions are Signal K PUTs, helper
   - `default` — set `default` on every start
   - `none` — do nothing on start
 - Path triggers, `choose`, zones, cron `schedule`
+- Trigger `round:` quantizes numbers (and lat/lon) so 230.1 V and 230.4 V do not both fire
 - Actions: `put`, `helper`, `notify`, `delay`, `run`
 - `run:` executes a file under configured `scriptsDir`. **stdout is the value; any stderr is fail**
 - Webapp: per-automation on/off, last result, last N decision records, live YAML, activate another git commit
@@ -26,7 +27,7 @@ Not Node-RED. Not a Home Assistant YAML clone. Actions are Signal K PUTs, helper
 
 | Option | Meaning |
 | --- | --- |
-| Automations git / YAML directory | Folder with `*.yaml` at the top level. Git repo → commit list in the webapp |
+| Automations git / YAML directory | Folder with `*.yaml` at the top level. Git repo (or a subdir of one) → commit list in the webapp; “make live” archives only this folder |
 | Allowed scripts directory | Only relative `run.file` paths under this dir |
 | Decision records to keep | Ring buffer per automation |
 | Script timeout | Seconds |
@@ -35,7 +36,7 @@ Do not paste automations into the admin form. Runtime state is `~/.signalk/plugi
 
 ## Example
 
-See `examples/automations.yaml`. Copy or point `automationsDir` at a repo of your own; bundled examples are `enabled: false`.
+See `examples/automations.yaml`. Boatnet live YAML is `git@github.com:htool/boatnet_automations.git` (`automationsDir` on the Pi). On/off and Verbose are plugin-data switches, not YAML keys.
 
 ```yaml
 helpers:
@@ -46,18 +47,25 @@ helpers:
     latch_on_external_put: electrical.switches.starlink.state
 
 automations:
-  - id: start_anchorwatch
+  - id: starlink_standby
     trigger:
-      - path: winches.windlass.rode
-        above: 2
-        unit: m
-        for: 10s
+      - schedule: "0 4 * * *"
+    condition:
+      - zone: home_harbour
+      - helper: starlink_manual
+        is: false
     action:
-      - put: navigation.anchor.watch
+      - put: electrical.switches.starlink.state
         value: true
+      - delay: 15m
+      - put: electrical.switches.starlink.state
+        value: false
 ```
 
-Script action:
+```yaml
+- path: electrical.switches.dolphinCharger.voltage
+  round: 1          # nearest volt; 230.1 and 230.4 do not both fire
+```
 
 ```yaml
 - run:

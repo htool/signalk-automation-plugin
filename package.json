@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/htool/signalk-automation-plugin#readme",
   "signalk": {
+    "appIcon": "icon.png",
     "displayName": "Automations"
   },
   "signalk-plugin-enabled-by-default": false,
