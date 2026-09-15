@@ -1,6 +1,6 @@
 {
   "name": "signalk-automation-plugin",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Home Assistant-like YAML automations for Signal K",
   "main": "plugin/index.js",
   "keywords": [
