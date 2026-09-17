@@ -18,6 +18,6 @@ Actions: `put` (`putSelfPath` or `handleMessage`), `helper`, `notify`, `delay`, 
 
 `signalKApiRoutes`: same GETs under `/signalk-automation-plugin/…` (SK 2.x MFD/readonly). Writes stay on `/plugins/`.
 
-## Boatnet (2026-09-14)
+## Site YAML
 
-Plugin checkout `/home/pi/src/signalk-automation-plugin` (git, linker). YAML git is **`git@github.com:htool/boatnet_automations.git`** at `/home/pi/src/boatnet_automations` (hop: `/home/hans/src/boatnet_automations`). Config `automationsDir` = that repo, `scriptsDir` = `scripts/`. On/off is the webapp switch. Webapp `/signalk-automation-plugin/`.
+`automationsDir` is a separate folder (usually its own git). This plugin does not ship a vessel’s automations. `examples/` is a fictional sample. On/off and Verbose are webapp switches in plugin-data, not YAML keys.

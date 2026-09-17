@@ -19,4 +19,4 @@ Hans’s HA-helper behaviour: survive reboot, reset to default every start, or d
 
 ## Note
 
-`latch_on_external_put` can set a boolean helper when another path changes and `$source` is not this plugin (any value, including 0/off). On boatnet, `starlink_manual` latched `true` at start because Starlink was already on.
+`latch_on_external_put` can set a boolean helper when another path changes and `$source` is not this plugin. Latch only on a **changed** on/off (not the first seed of the path, not 0 vs false). Otherwise a replayed switch state at start looks like a manual override.

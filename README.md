@@ -36,34 +36,34 @@ Do not paste automations into the admin form. Runtime state is `~/.signalk/plugi
 
 ## Example
 
-See `examples/automations.yaml`. Boatnet live YAML is `git@github.com:htool/boatnet_automations.git` (`automationsDir` on the Pi). On/off and Verbose are plugin-data switches, not YAML keys.
+See `examples/automations.yaml` (fictional sample). Live YAML is whatever directory you set as `automationsDir` — usually a separate git. On/off and Verbose are plugin-data switches, not YAML keys.
 
 ```yaml
 helpers:
-  starlink_manual:
+  dish_manual:
     type: boolean
     default: false
     on_start: restore   # survive reboot
-    latch_on_external_put: electrical.switches.starlink.state
+    latch_on_external_put: electrical.switches.dish.state
 
 automations:
-  - id: starlink_standby
+  - id: dish_standby
     trigger:
       - schedule: "0 4 * * *"
     condition:
       - zone: home_harbour
-      - helper: starlink_manual
+      - helper: dish_manual
         is: false
     action:
-      - put: electrical.switches.starlink.state
+      - put: electrical.switches.dish.state
         value: true
       - delay: 15m
-      - put: electrical.switches.starlink.state
+      - put: electrical.switches.dish.state
         value: false
 ```
 
 ```yaml
-- path: electrical.switches.dolphinCharger.voltage
+- path: electrical.switches.charger.voltage
   round: 1          # nearest volt; 230.1 and 230.4 do not both fire
 ```
 

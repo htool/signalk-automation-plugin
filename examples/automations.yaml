@@ -1,103 +1,105 @@
+# Bundled sample only. Site YAML belongs in the git you set as automationsDir,
+# not in this plugin.
+
 helpers:
-  starlink_manual:
+  dish_manual:
     type: boolean
-    name: Starlink handmatig
+    name: Dish manual
     default: false
     on_start: restore
-    latch_on_external_put: electrical.switches.starlink.state
-  depart_prep:
+    latch_on_external_put: electrical.switches.dish.state
+  trip_prep:
     type: boolean
-    name: Maak klaar voor vertrek
+    name: Prepare to leave
     default: false
     on_start: restore
 
 automations:
   - id: shore_charge
-    alias: Walstroom laadbeleid
+    alias: Shore charge
     zones:
       home_harbour:
-        name: Thuishaven
-        lat: 52.37
-        lon: 5.22
+        name: Home harbour
+        lat: 52.1
+        lon: 4.9
         radius: 150
     trigger:
-      - path: sensors.presence.dolphinshelly
+      - path: sensors.presence.shore
       - path: electrical.batteries.house.capacity.stateOfCharge
         round: 0.01
-      - helper: depart_prep
+      - helper: trip_prep
     choose:
-      - alias: onderweg volladen
+      - alias: charge underway
         conditions:
-          - path: sensors.presence.dolphinshelly
+          - path: sensors.presence.shore
             is: true
           - not:
               zone: home_harbour
         action:
-          - put: electrical.switches.dolphinCharger.state
+          - put: electrical.switches.charger.state
             value: 1
-      - alias: klaar voor vertrek laden
+      - alias: charge to leave
         conditions:
-          - path: sensors.presence.dolphinshelly
+          - path: sensors.presence.shore
             is: true
           - zone: home_harbour
-          - helper: depart_prep
+          - helper: trip_prep
             is: true
           - path: electrical.batteries.house.capacity.stateOfCharge
             below: 0.98
         action:
-          - put: electrical.switches.dolphinCharger.state
+          - put: electrical.switches.charger.state
             value: 1
-      - alias: klaar voor vertrek vol
+      - alias: leave charged
         conditions:
-          - path: sensors.presence.dolphinshelly
+          - path: sensors.presence.shore
             is: true
           - zone: home_harbour
-          - helper: depart_prep
+          - helper: trip_prep
             is: true
           - path: electrical.batteries.house.capacity.stateOfCharge
             above: 0.97
         action:
-          - put: electrical.switches.dolphinCharger.state
+          - put: electrical.switches.charger.state
             value: 0
-          - helper: depart_prep
+          - helper: trip_prep
             value: false
-      - alias: thuis onder 60%
+      - alias: home below 60%
         conditions:
-          - path: sensors.presence.dolphinshelly
+          - path: sensors.presence.shore
             is: true
           - zone: home_harbour
-          - helper: depart_prep
+          - helper: trip_prep
             is: false
           - path: electrical.batteries.house.capacity.stateOfCharge
             below: 0.6
         action:
-          - put: electrical.switches.dolphinCharger.state
+          - put: electrical.switches.charger.state
             value: 1
-      - alias: thuis boven 80%
+      - alias: home above 80%
         conditions:
-          - path: sensors.presence.dolphinshelly
+          - path: sensors.presence.shore
             is: true
           - zone: home_harbour
-          - helper: depart_prep
+          - helper: trip_prep
             is: false
           - path: electrical.batteries.house.capacity.stateOfCharge
             above: 0.8
         action:
-          - put: electrical.switches.dolphinCharger.state
+          - put: electrical.switches.charger.state
             value: 0
 
-  - id: starlink_standby
-    alias: Starlink standby-update
+  - id: dish_standby
+    alias: Dish standby update
     trigger:
       - schedule: "0 4 * * *"
     condition:
-      # home_harbour is defined on shore_charge (Walstroom laadbeleid).
       - zone: home_harbour
-      - helper: starlink_manual
+      - helper: dish_manual
         is: false
     action:
-      - put: electrical.switches.starlink.state
+      - put: electrical.switches.dish.state
         value: true
       - delay: 15m
-      - put: electrical.switches.starlink.state
+      - put: electrical.switches.dish.state
         value: false

@@ -16,7 +16,7 @@ test('put valueFrom copies another path', async () => {
     choose: []
   }
   const puts = []
-  const pos = { latitude: 52.4876, longitude: 5.0636 }
+  const pos = { latitude: 52.1, longitude: 4.9 }
   const record = await engine.evaluateAutomation(auto, {
     values: { 'winches.windlass.rode': 8, 'navigation.position': pos },
     zones: {},
@@ -63,13 +63,13 @@ test('helper condition blocks action', async () => {
   const auto = {
     id: 'sl',
     trigger: [{ schedule: '0 4 * * *' }],
-    condition: [{ helper: 'starlink_manual', is: false }],
-    action: [{ put: 'electrical.switches.starlink.state', value: true }],
+    condition: [{ helper: 'dish_manual', is: false }],
+    action: [{ put: 'electrical.switches.dish.state', value: true }],
     choose: []
   }
   const puts = []
   const record = await engine.evaluateAutomation(auto, {
-    values: { 'automations.helpers.starlink_manual': true },
+    values: { 'automations.helpers.dish_manual': true },
     zones: {},
     enabled: true,
     trigger: { schedule: '0 4 * * *' },
@@ -85,18 +85,18 @@ test('helper condition blocks action', async () => {
   assert.equal(puts.length, 0)
 })
 
-test('starlink standby only at home harbour when not manual', async () => {
+test('dish standby only at home harbour when not manual', async () => {
   const auto = {
-    id: 'starlink_standby',
+    id: 'dish_standby',
     trigger: [{ schedule: '0 4 * * *' }],
     condition: [
       { zone: 'home_harbour' },
-      { helper: 'starlink_manual', is: false }
+      { helper: 'dish_manual', is: false }
     ],
-    action: [{ put: 'electrical.switches.starlink.state', value: 1 }],
+    action: [{ put: 'electrical.switches.dish.state', value: 1 }],
     choose: []
   }
-  const home = { lat: 52.48759, lon: 5.06362, radius: 30 }
+  const home = { lat: 52.1, lon: 4.9, radius: 30 }
   const ctx = (values) => ({
     values,
     zones: { home_harbour: home },
@@ -109,25 +109,25 @@ test('starlink standby only at home harbour when not manual', async () => {
     sleep: async () => {},
     runScript: async () => ({ ok: true, value: '' })
   })
-  const atHome = { latitude: 52.48759, longitude: 5.06362 }
+  const atHome = { latitude: 52.1, longitude: 4.9 }
   const away = { latitude: 52.4, longitude: 5.0 }
 
   const homeOk = await engine.evaluateAutomation(auto, ctx({
     'navigation.position': atHome,
-    'automations.helpers.starlink_manual': false
+    'automations.helpers.dish_manual': false
   }))
   assert.equal(homeOk.result, 'ok')
 
   const homeManual = await engine.evaluateAutomation(auto, ctx({
     'navigation.position': atHome,
-    'automations.helpers.starlink_manual': true
+    'automations.helpers.dish_manual': true
   }))
   assert.equal(homeManual.result, 'ok')
   assert.equal(homeManual.reason, 'condition not met')
 
   const awayOk = await engine.evaluateAutomation(auto, ctx({
     'navigation.position': away,
-    'automations.helpers.starlink_manual': false
+    'automations.helpers.dish_manual': false
   }))
   assert.equal(awayOk.result, 'ok')
   assert.equal(awayOk.reason, 'condition not met')
@@ -146,7 +146,7 @@ test('choose picks first matching branch', async () => {
           { path: 'electrical.chargers.shore.connected', is: true },
           { not: { zone: 'home_harbour' } }
         ],
-        action: [{ put: 'electrical.switches.dolphinCharger.state', value: 1 }]
+        action: [{ put: 'electrical.switches.charger.state', value: 1 }]
       },
       {
         alias: 'home-low',
@@ -154,7 +154,7 @@ test('choose picks first matching branch', async () => {
           { path: 'electrical.chargers.shore.connected', is: true },
           { zone: 'home_harbour' }
         ],
-        action: [{ put: 'electrical.switches.dolphinCharger.state', value: 0 }]
+        action: [{ put: 'electrical.switches.charger.state', value: 0 }]
       }
     ]
   }
@@ -176,7 +176,7 @@ test('choose picks first matching branch', async () => {
   })
   assert.equal(record.result, 'ok')
   assert.equal(record.choose, 'home-low')
-  assert.deepEqual(puts, [['electrical.switches.dolphinCharger.state', 0]])
+  assert.deepEqual(puts, [['electrical.switches.charger.state', 0]])
   const put = record.actions.find((a) => a.type === 'put')
   assert.equal(put.changed, true)
   assert.equal(put.previous, undefined)
@@ -187,12 +187,12 @@ test('zone matches lat/lon GPS as well as latitude/longitude', async () => {
     id: 'z',
     trigger: [],
     condition: [{ zone: 'home_harbour' }],
-    action: [{ put: 'electrical.switches.dolphinCharger.state', value: true }],
+    action: [{ put: 'electrical.switches.charger.state', value: true }],
     choose: []
   }
-  const home = { lat: 52.48759, lon: 5.06362, radius: 30 }
+  const home = { lat: 52.1, lon: 4.9, radius: 30 }
   const record = await engine.evaluateAutomation(auto, {
-    values: { 'navigation.position': { lat: 52.4875866, lon: 5.0636168 } },
+    values: { 'navigation.position': { lat: 52.10001, lon: 4.90001 } },
     zones: { home_harbour: home },
     enabled: true,
     now: Date.now(),
@@ -235,12 +235,12 @@ test('unchanged PUT is not sent again', async () => {
     id: 'charge',
     trigger: [],
     condition: [],
-    action: [{ put: 'electrical.switches.dolphinCharger.state', value: true }],
+    action: [{ put: 'electrical.switches.charger.state', value: true }],
     choose: []
   }
   const puts = []
   const record = await engine.evaluateAutomation(auto, {
-    values: { 'electrical.switches.dolphinCharger.state': true },
+    values: { 'electrical.switches.charger.state': true },
     zones: {},
     enabled: true,
     now: Date.now(),
@@ -258,28 +258,28 @@ test('unchanged PUT is not sent again', async () => {
 test('verbose log shows trigger and ✓/✗ conditions', async () => {
   const auto = {
     id: 'charge',
-    alias: 'Walstroom laadbeleid',
-    trigger: [{ path: 'electrical.switches.dolphinCharger.voltage' }],
+    alias: 'Shore charge',
+    trigger: [{ path: 'electrical.switches.charger.voltage' }],
     condition: [],
     action: [],
     choose: [
       {
-        alias: 'thuis onder 60%',
+        alias: 'home below 60%',
         conditions: [
-          { path: 'electrical.switches.dolphinCharger.voltage', above: 200 },
+          { path: 'electrical.switches.charger.voltage', above: 200 },
           { zone: 'home_harbour' },
           { path: 'electrical.batteries.1.capacity.stateOfCharge', below: 0.6 }
         ],
-        action: [{ put: 'electrical.switches.dolphinCharger.state', value: true }]
+        action: [{ put: 'electrical.switches.charger.state', value: true }]
       }
     ]
   }
-  const home = { lat: 52.48759, lon: 5.06362, radius: 30 }
+  const home = { lat: 52.1, lon: 4.9, radius: 30 }
   const record = await engine.evaluateAutomation(auto, {
     values: {
-      'electrical.switches.dolphinCharger.voltage': 230,
+      'electrical.switches.charger.voltage': 230,
       'electrical.batteries.1.capacity.stateOfCharge': 0.72,
-      'navigation.position': { latitude: 52.48759, longitude: 5.06362 }
+      'navigation.position': { latitude: 52.1, longitude: 4.9 }
     },
     zones: { home_harbour: home },
     enabled: true,
@@ -295,7 +295,7 @@ test('verbose log shows trigger and ✓/✗ conditions', async () => {
   assert.equal(record.reason, 'no matching choose branch')
   assert.equal(record.firedBy, 'electrical.batteries.1.capacity.stateOfCharge = 0.72')
   assert.match(record.verboseLog, /trigger: electrical\.batteries\.1\.capacity\.stateOfCharge = 0\.72/)
-  assert.match(record.verboseLog, /✓ electrical\.switches\.dolphinCharger\.voltage > 200 \(230\)/)
+  assert.match(record.verboseLog, /✓ electrical\.switches\.charger\.voltage > 200 \(230\)/)
   assert.match(record.verboseLog, /✓ zone home_harbour/)
   assert.match(record.verboseLog, /✗ electrical\.batteries\.1\.capacity\.stateOfCharge < 0\.6 \(0\.72\)/)
   assert.equal(record.branches[0].picked, false)
@@ -303,36 +303,36 @@ test('verbose log shows trigger and ✓/✗ conditions', async () => {
 
 test('any humidity branch still matches when another room is missing', async () => {
   const auto = {
-    id: 'ontvochtiger',
-    alias: 'Ontvochtiger',
-    trigger: [{ path: 'environment.inside.hutvoor.humidity' }],
+    id: 'dehumidifier',
+    alias: 'Dehumidifier',
+    trigger: [{ path: 'environment.inside.cabin.forward.humidity' }],
     condition: [],
     action: [],
     choose: [
       {
-        alias: 'vochtig',
+        alias: 'humid',
         conditions: [
           {
             any: [
-              { path: 'environment.inside.hutachterstuurboord.humidity', above: 0.69 },
-              { path: 'environment.inside.hutvoor.humidity', above: 0.69 }
+              { path: 'environment.inside.cabin.aft.humidity', above: 0.69 },
+              { path: 'environment.inside.cabin.forward.humidity', above: 0.69 }
             ]
           }
         ],
-        action: [{ put: 'electrical.switches.smartplugontvochtiger.state', value: 1 }]
+        action: [{ put: 'electrical.switches.dehumidifier.state', value: 1 }]
       },
       {
-        alias: 'droog',
-        action: [{ put: 'electrical.switches.smartplugontvochtiger.state', value: 0 }]
+        alias: 'dry',
+        action: [{ put: 'electrical.switches.dehumidifier.state', value: 0 }]
       }
     ]
   }
   const puts = []
   const record = await engine.evaluateAutomation(auto, {
-    values: { 'environment.inside.hutvoor.humidity': 0.7 },
+    values: { 'environment.inside.cabin.forward.humidity': 0.7 },
     zones: {},
     enabled: true,
-    trigger: { path: 'environment.inside.hutvoor.humidity', value: 0.7 },
+    trigger: { path: 'environment.inside.cabin.forward.humidity', value: 0.7 },
     now: Date.now(),
     put: async (p, v) => { puts.push([p, v]) },
     notify: async () => {},
@@ -341,33 +341,33 @@ test('any humidity branch still matches when another room is missing', async () 
     runScript: async () => ({ ok: true, value: '' })
   })
   assert.equal(record.result, 'ok')
-  assert.equal(record.choose, 'vochtig')
-  assert.deepEqual(puts, [['electrical.switches.smartplugontvochtiger.state', 1]])
+  assert.equal(record.choose, 'humid')
+  assert.deepEqual(puts, [['electrical.switches.dehumidifier.state', 1]])
   assert.match(record.verboseLog, /✓ any/)
-  assert.match(record.verboseLog, /✓ environment.inside.hutvoor.humidity > 0.69 \(0\.7\)/)
+  assert.match(record.verboseLog, /✓ environment.inside.cabin.forward.humidity > 0.69 \(0\.7\)/)
 })
 
 test('choose is OK when a compared path is missing', async () => {
   const auto = {
     id: 'charge',
-    trigger: [{ path: 'sensors.presence.dolphinshelly' }],
+    trigger: [{ path: 'sensors.presence.shore' }],
     condition: [],
     action: [],
     choose: [
       {
-        alias: 'thuis onder 60%',
+        alias: 'home below 60%',
         conditions: [
           { path: 'electrical.batteries.1.capacity.stateOfCharge', below: 0.6 }
         ],
-        action: [{ put: 'electrical.switches.orionCharger.state', value: 1 }]
+        action: [{ put: 'electrical.switches.charger.state', value: 1 }]
       }
     ]
   }
   const record = await engine.evaluateAutomation(auto, {
-    values: { 'sensors.presence.dolphinshelly': true },
+    values: { 'sensors.presence.shore': true },
     zones: {},
     enabled: true,
-    trigger: { path: 'sensors.presence.dolphinshelly', value: true },
+    trigger: { path: 'sensors.presence.shore', value: true },
     now: Date.now(),
     put: async () => {},
     notify: async () => {},
@@ -396,19 +396,19 @@ test('path trigger still fires when a schedule is also listed', async () => {
   const auto = {
     id: 'shore_charge',
     trigger: [
-      { path: 'sensors.presence.dolphinshelly' },
+      { path: 'sensors.presence.shore' },
       { schedule: '*/15 * * * *' }
     ],
     condition: [],
-    action: [{ put: 'electrical.switches.orionCharger.state', value: 1 }],
+    action: [{ put: 'electrical.switches.charger.state', value: 1 }],
     choose: []
   }
   const puts = []
   const record = await engine.evaluateAutomation(auto, {
-    values: { 'sensors.presence.dolphinshelly': true },
+    values: { 'sensors.presence.shore': true },
     zones: {},
     enabled: true,
-    trigger: { path: 'sensors.presence.dolphinshelly', value: true },
+    trigger: { path: 'sensors.presence.shore', value: true },
     now: new Date(2026, 8, 15, 15, 7, 0).getTime(),
     put: async (p, v) => { puts.push([p, v]) },
     notify: async () => {},
@@ -417,16 +417,16 @@ test('path trigger still fires when a schedule is also listed', async () => {
     runScript: async () => ({ ok: true, value: '' })
   })
   assert.equal(record.result, 'ok')
-  assert.deepEqual(puts, [['electrical.switches.orionCharger.state', 1]])
+  assert.deepEqual(puts, [['electrical.switches.charger.state', 1]])
 })
 
 test('quantizeValue rounds numbers and lat/lon', () => {
   assert.equal(engine.quantizeValue(230.4, 1), 230)
   assert.equal(engine.quantizeValue(230.6, 1), 231)
   assert.equal(engine.quantizeValue(0.724, 0.01), 0.72)
-  const q = engine.quantizeValue({ latitude: 52.48759, longitude: 5.06362 }, 0.0001)
-  assert.equal(q.latitude, 52.4876)
-  assert.equal(q.longitude, 5.0636)
+  const q = engine.quantizeValue({ latitude: 51.23456, longitude: 4.56789 }, 0.0001)
+  assert.equal(q.latitude, 51.2346)
+  assert.equal(q.longitude, 4.5679)
 })
 
 test('collectPaths includes PUT targets so live switch state is seeded', () => {
@@ -434,20 +434,20 @@ test('collectPaths includes PUT targets so live switch state is seeded', () => {
     automations: [
       {
         id: 'shore_charge',
-        trigger: [{ path: 'sensors.presence.dolphinshelly' }],
+        trigger: [{ path: 'sensors.presence.shore' }],
         choose: [
           {
-            alias: 'klaar voor vertrek laden',
-            conditions: [{ helper: 'depart_prep', is: true }],
-            action: [{ put: 'electrical.switches.orionCharger.state', value: 1 }]
+            alias: 'charge to leave',
+            conditions: [{ helper: 'trip_prep', is: true }],
+            action: [{ put: 'electrical.switches.charger.state', value: 1 }]
           }
         ]
       }
     ],
-    helpers: { depart_prep: { id: 'depart_prep', type: 'boolean' } }
+    helpers: { trip_prep: { id: 'trip_prep', type: 'boolean' } }
   })
-  assert.ok(paths.includes('electrical.switches.orionCharger.state'))
-  assert.ok(paths.includes('sensors.presence.dolphinshelly'))
+  assert.ok(paths.includes('electrical.switches.charger.state'))
+  assert.ok(paths.includes('sensors.presence.shore'))
 })
 
 

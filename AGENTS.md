@@ -21,16 +21,17 @@ Keep this file an index. Detail lives in `docs/` and skills, loaded on demand. H
 | Repo | Role |
 | --- | --- |
 | This plugin | YAML engine, helpers, traces, git-live, webapp |
-| `htool/boatnet_automations` | Lepelaar YAML + scripts (live `automationsDir`) |
+| Site automations git | Live YAML + scripts (`automationsDir`); **not this tree** |
 | `signalk-rules` | JSON rules + webapp editor (not this tree) |
 | `signalk-anchoralarm-plugin` | Anchor watch implementation; this plugin only PUTs |
-| `signalk-starlink` / charger / BMS plugins | Device paths this YAML refers to |
+| Device plugins | Paths site YAML refers to; this plugin stays path-agnostic |
 | `signalk-trigger` | IF without THEN; do not extend it here |
 
 If a slice cannot be done from these files, fix the docs. Do not grow the prompt.
 
 ## Rules
 
+- This plugin stays generic. Do not add a vessel’s helpers, zones, device paths, scripts, or coordinates here. Site YAML lives in the git configured as `automationsDir`. `examples/` is a fictional sample only.
 - Automations live in YAML files / git, never in plugin options (Save would wipe them).
 - Helper `on_start` is `restore` \| `default` \| `none` only.
 - `run:` scripts: relative to `scriptsDir`, stdout = value, **stderr = fail**.

@@ -17,10 +17,10 @@ Ordered slices. **Tests on every feature slice.** Docs-only slices do not change
 - Webapp login for `/plugins/` writes (Run/Reload/on); Run + Git left-aligned; write routes registered `readwrite` when SK `router.access` exists
 - UI **On** / **Verbose** live in `state.json` (YAML has no `enabled:`); survive webapp reload and SK restart once the POST succeeds
 - `putSelfPath` treats SK PUT `statusCode >= 400` as failure (200 reply object is success)
-- Dedicated automations git: `htool/boatnet_automations` (on/off in plugin-data, not YAML)
+- Site YAML lives in a separate `automationsDir` git (on/off in plugin-data, not YAML)
 - Webapp run log polls `lastRun` (~1.5s) and refreshes traces when an automation has run
 
 ## Next
 
 1. **Kit confirmation** — this file + architecture + ADRs + known-gaps + skill (docs only). Show Hans; wait.
-2. **Real boat YAML** — paths mapped 2026-09-14. On/off is the webapp switch (plugin-data). Anchor watch is `signalk-anchoralarm-plugin`, not YAML.
+2. **Site YAML** — lives in the configured `automationsDir` git, not this plugin. On/off is the webapp switch (plugin-data). Anchor watch is `signalk-anchoralarm-plugin`, not YAML.

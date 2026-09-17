@@ -28,7 +28,7 @@ test('UI on/off survives a fresh load; YAML enabled is ignored', () => {
   const yamlText = [
     'automations:',
     '  - id: shore_charge',
-    '    alias: Walstroom laadbeleid',
+    '    alias: Shore charge',
     '    enabled: false',
     '    trigger: []',
     '    action: []',
@@ -227,10 +227,10 @@ test('PUT from automation is recorded on the switch log', async () => {
     [
       'automations:',
       '  - id: shore_charge',
-      '    alias: Walstroom laadbeleid',
+      '    alias: Shore charge',
       '    trigger: []',
       '    action:',
-      '      - put: electrical.switches.dolphinCharger.state',
+      '      - put: electrical.switches.charger.state',
       '        value: true',
       ''
     ].join('\n')
@@ -252,9 +252,9 @@ test('PUT from automation is recorded on the switch log', async () => {
   const log = store.loadSwitchLog(dataDir)
   assert.equal(log.length, 1)
   assert.equal(log[0].kind, 'put')
-  assert.equal(log[0].path, 'electrical.switches.dolphinCharger.state')
+  assert.equal(log[0].path, 'electrical.switches.charger.state')
   assert.equal(log[0].to, true)
-  assert.match(lines[0], /PUT electrical.switches.dolphinCharger.state/)
+  assert.match(lines[0], /PUT electrical.switches.charger.state/)
 })
 
 test('runNow ignores enabled:false and skips triggers', async () => {
@@ -266,13 +266,13 @@ test('runNow ignores enabled:false and skips triggers', async () => {
     [
       'automations:',
       '  - id: shore_charge',
-      '    alias: Walstroom laadbeleid',
+      '    alias: Shore charge',
       '    enabled: false',
       '    trigger:',
       '      - path: electrical.never',
       '        above: 999',
       '    action:',
-      '      - put: electrical.switches.dolphinCharger.state',
+      '      - put: electrical.switches.charger.state',
       '        value: true',
       '      - delay: 15m',
       ''
@@ -297,7 +297,7 @@ test('runNow ignores enabled:false and skips triggers', async () => {
   const record = await rt.runNow('shore_charge')
   assert.equal(record.result, 'ok')
   assert.equal(record.manual, true)
-  assert.deepEqual(puts, [['electrical.switches.dolphinCharger.state', true]])
+  assert.deepEqual(puts, [['electrical.switches.charger.state', true]])
   assert.equal(slept, false)
   assert.equal(record.actions.some((a) => a.type === 'delay' && a.skipped), true)
 })
@@ -311,25 +311,25 @@ test('choose policy re-evaluates after a no-branch skip; verbose logs the path',
     [
       'automations:',
       '  - id: shore_charge',
-      '    alias: Walstroom laadbeleid',
+      '    alias: Shore charge',
       '    zones:',
       '      home_harbour:',
-      '        lat: 52.48759',
-      '        lon: 5.06362',
+      '        lat: 52.1',
+      '        lon: 4.9',
       '        radius: 30',
       '    trigger:',
-      '      - path: electrical.switches.dolphinCharger.voltage',
+      '      - path: electrical.switches.charger.voltage',
       '      - path: electrical.batteries.1.capacity.stateOfCharge',
       '    choose:',
-      '      - alias: thuis onder 60%',
+      '      - alias: home below 60%',
       '        conditions:',
-      '          - path: electrical.switches.dolphinCharger.voltage',
+      '          - path: electrical.switches.charger.voltage',
       '            above: 200',
       '          - zone: home_harbour',
       '          - path: electrical.batteries.1.capacity.stateOfCharge',
       '            below: 0.6',
       '        action:',
-      '          - put: electrical.switches.dolphinCharger.state',
+      '          - put: electrical.switches.charger.state',
       '            value: true',
       ''
     ].join('\n')
@@ -348,9 +348,9 @@ test('choose policy re-evaluates after a no-branch skip; verbose logs the path',
   })
   rt.load()
   rt.setEnabled('shore_charge', true)
-  rt.setPathValue('electrical.switches.dolphinCharger.voltage', 230)
+  rt.setPathValue('electrical.switches.charger.voltage', 230)
   rt.setPathValue('electrical.batteries.1.capacity.stateOfCharge', 0.7)
-  rt.setPathValue('navigation.position', { latitude: 52.48759, longitude: 5.06362 })
+  rt.setPathValue('navigation.position', { latitude: 52.1, longitude: 4.9 })
 
   const mid = await rt.maybeRun(rt.doc.automations[0], {
     path: 'electrical.batteries.1.capacity.stateOfCharge',
@@ -379,8 +379,8 @@ test('choose policy re-evaluates after a no-branch skip; verbose logs the path',
     value: 0.5
   })
   assert.equal(low.result, 'ok')
-  assert.equal(low.choose, 'thuis onder 60%')
-  assert.deepEqual(puts, [['electrical.switches.dolphinCharger.state', true]])
+  assert.equal(low.choose, 'home below 60%')
+  assert.deepEqual(puts, [['electrical.switches.charger.state', true]])
   assert.match(low.verboseLog, /✓ electrical\.batteries\.1\.capacity\.stateOfCharge < 0\.6 \(0\.5\)/)
 })
 
@@ -392,11 +392,11 @@ test('cron fires again the next day without an explicit rising edge', async () =
     path.join(yamlDir, 'a.yaml'),
     [
       'automations:',
-      '  - id: starlink_standby',
+      '  - id: dish_standby',
       '    trigger:',
       '      - schedule: "0 4 * * *"',
       '    action:',
-      '      - put: electrical.switches.starlink.state',
+      '      - put: electrical.switches.dish.state',
       '        value: 1',
       ''
     ].join('\n')
@@ -415,10 +415,10 @@ test('cron fires again the next day without an explicit rising edge', async () =
     log: { info () {}, debug () {}, error () {} }
   })
   rt.load()
-  rt.setEnabled('starlink_standby', true)
+  rt.setEnabled('dish_standby', true)
   await rt.tickSchedule(new Date(now))
   assert.equal(puts.length, 1)
-  rt.setPathValue('electrical.switches.starlink.state', 0)
+  rt.setPathValue('electrical.switches.dish.state', 0)
   now = new Date(2026, 8, 15, 4, 0, 0).getTime()
   await rt.tickSchedule(new Date(now))
   assert.equal(puts.length, 2)
@@ -434,11 +434,11 @@ test('mixed path + schedule: path change runs off the cron minute', async () => 
       'automations:',
       '  - id: shore_charge',
       '    trigger:',
-      '      - path: sensors.presence.dolphinshelly',
-      '      - helper: depart_prep',
+      '      - path: sensors.presence.shore',
+      '      - helper: trip_prep',
       '      - schedule: "*/15 * * * *"',
       '    action:',
-      '      - put: electrical.switches.orionCharger.state',
+      '      - put: electrical.switches.charger.state',
       '        value: 1',
       ''
     ].join('\n')
@@ -458,10 +458,10 @@ test('mixed path + schedule: path change runs off the cron minute', async () => 
   })
   rt.load()
   rt.setEnabled('shore_charge', true)
-  rt.setPathValue('sensors.presence.dolphinshelly', true)
-  await rt.handlePathChange('sensors.presence.dolphinshelly', true)
+  rt.setPathValue('sensors.presence.shore', true)
+  await rt.handlePathChange('sensors.presence.shore', true)
   assert.equal(puts.length, 1)
-  rt.setPathValue('electrical.switches.orionCharger.state', 0)
+  rt.setPathValue('electrical.switches.charger.state', 0)
   now = new Date(2026, 8, 15, 15, 15, 0).getTime()
   await rt.tickSchedule(new Date(now))
   assert.equal(puts.length, 2)
@@ -477,10 +477,10 @@ test('round on a trigger ignores sub-step path noise', async () => {
       'automations:',
       '  - id: shore_charge',
       '    trigger:',
-      '      - path: electrical.switches.dolphinCharger.voltage',
+      '      - path: electrical.switches.charger.voltage',
       '        round: 1',
       '    action:',
-      '      - put: electrical.switches.dolphinCharger.state',
+      '      - put: electrical.switches.charger.state',
       '        value: true',
       ''
     ].join('\n')
@@ -498,15 +498,15 @@ test('round on a trigger ignores sub-step path noise', async () => {
   })
   rt.load()
   rt.setEnabled('shore_charge', true)
-  await rt.handlePathChange('electrical.switches.dolphinCharger.voltage', 230.1)
+  await rt.handlePathChange('electrical.switches.charger.voltage', 230.1)
   assert.equal(puts.length, 1)
-  await rt.handlePathChange('electrical.switches.dolphinCharger.voltage', 230.4)
+  await rt.handlePathChange('electrical.switches.charger.voltage', 230.4)
   assert.equal(puts.length, 1)
-  await rt.handlePathChange('electrical.switches.dolphinCharger.voltage', 231.2)
+  await rt.handlePathChange('electrical.switches.charger.voltage', 231.2)
   assert.equal(puts.length, 1)
 })
 
-test('depart_prep helper turns home charging on until nearly full', async () => {
+test('trip_prep helper turns home charging on until nearly full', async () => {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-depart-'))
   const yamlDir = path.join(dataDir, 'yaml')
   fs.mkdirSync(yamlDir)
@@ -514,7 +514,7 @@ test('depart_prep helper turns home charging on until nearly full', async () => 
     path.join(yamlDir, 'a.yaml'),
     [
       'helpers:',
-      '  depart_prep:',
+      '  trip_prep:',
       '    type: boolean',
       '    default: false',
       '    on_start: restore',
@@ -522,36 +522,36 @@ test('depart_prep helper turns home charging on until nearly full', async () => 
       '  - id: shore_charge',
       '    zones:',
       '      home_harbour:',
-      '        lat: 52.48759',
-      '        lon: 5.06362',
+      '        lat: 52.1',
+      '        lon: 4.9',
       '        radius: 30',
       '    trigger:',
-      '      - path: electrical.switches.dolphinCharger.voltage',
+      '      - path: electrical.switches.charger.voltage',
       '        round: 1',
       '      - path: electrical.batteries.1.capacity.stateOfCharge',
       '        round: 0.01',
-      '      - helper: depart_prep',
+      '      - helper: trip_prep',
       '    choose:',
-      '      - alias: klaar voor vertrek laden',
+      '      - alias: charge to leave',
       '        conditions:',
       '          - zone: home_harbour',
-      '          - helper: depart_prep',
+      '          - helper: trip_prep',
       '            is: true',
       '          - path: electrical.batteries.1.capacity.stateOfCharge',
       '            below: 0.98',
       '        action:',
-      '          - put: electrical.switches.dolphinCharger.state',
+      '          - put: electrical.switches.charger.state',
       '            value: true',
-      '      - alias: klaar voor vertrek vol',
+      '      - alias: leave charged',
       '        conditions:',
-      '          - helper: depart_prep',
+      '          - helper: trip_prep',
       '            is: true',
       '          - path: electrical.batteries.1.capacity.stateOfCharge',
       '            above: 0.97',
       '        action:',
-      '          - put: electrical.switches.dolphinCharger.state',
+      '          - put: electrical.switches.charger.state',
       '            value: false',
-      '          - helper: depart_prep',
+      '          - helper: trip_prep',
       '            value: false',
       ''
     ].join('\n')
@@ -569,15 +569,15 @@ test('depart_prep helper turns home charging on until nearly full', async () => 
   })
   rt.load()
   rt.setEnabled('shore_charge', true)
-  rt.setPathValue('electrical.switches.dolphinCharger.voltage', 230)
+  rt.setPathValue('electrical.switches.charger.voltage', 230)
   rt.setPathValue('electrical.batteries.1.capacity.stateOfCharge', 0.7)
-  rt.setPathValue('navigation.position', { latitude: 52.48759, longitude: 5.06362 })
-  await rt.setHelper('depart_prep', true)
-  assert.deepEqual(puts, [['electrical.switches.dolphinCharger.state', true]])
+  rt.setPathValue('navigation.position', { latitude: 52.1, longitude: 4.9 })
+  await rt.setHelper('trip_prep', true)
+  assert.deepEqual(puts, [['electrical.switches.charger.state', true]])
   rt.setPathValue('electrical.batteries.1.capacity.stateOfCharge', 0.99)
   await rt.handlePathChange('electrical.batteries.1.capacity.stateOfCharge', 0.99)
   assert.equal(puts[1][1], false)
-  assert.equal(rt.helperValues.depart_prep, false)
+  assert.equal(rt.helperValues.trip_prep, false)
 })
 
 test('runNow PUT previous is live SK value, not a stale cache from a failed PUT', async () => {
@@ -589,10 +589,10 @@ test('runNow PUT previous is live SK value, not a stale cache from a failed PUT'
     [
       'automations:',
       '  - id: shore_charge',
-      '    alias: Walstroom laadbeleid',
+      '    alias: Shore charge',
       '    trigger: []',
       '    action:',
-      '      - put: electrical.switches.orionCharger.state',
+      '      - put: electrical.switches.charger.state',
       '        value: 1',
       ''
     ].join('\n')
@@ -605,7 +605,7 @@ test('runNow PUT previous is live SK value, not a stale cache from a failed PUT'
     scriptsDir: yamlDir,
     app: {
       getSelfPath (p) {
-        if (p === 'electrical.switches.orionCharger.state') return { value: 0 }
+        if (p === 'electrical.switches.charger.state') return { value: 0 }
         return undefined
       }
     },
@@ -619,7 +619,7 @@ test('runNow PUT previous is live SK value, not a stale cache from a failed PUT'
   rt.load()
   const failed = await rt.runNow('shore_charge')
   assert.equal(failed.result, 'failure')
-  assert.equal(rt.values['electrical.switches.orionCharger.state'], 0)
+  assert.equal(rt.values['electrical.switches.charger.state'], 0)
   shouldFail = false
   const ok = await rt.runNow('shore_charge')
   assert.equal(ok.result, 'ok')
@@ -637,24 +637,24 @@ test('latch_on_external_put sets helper on off as well as on', async () => {
     path.join(yamlDir, 'a.yaml'),
     [
       'helpers:',
-      '  kruimeldief_manual:',
+      '  plug_manual:',
       '    type: boolean',
       '    default: false',
       '    on_start: restore',
-      '    latch_on_external_put: electrical.switches.smartplugkruimeldief.state',
+      '    latch_on_external_put: electrical.switches.plug.state',
       'automations:',
-      '  - id: kruimeldief',
+      '  - id: plug_charge',
       '    trigger:',
-      '      - helper: kruimeldief_manual',
+      '      - helper: plug_manual',
       '    choose:',
-      '      - alias: handmatig',
+      '      - alias: manual',
       '        conditions:',
-      '          - helper: kruimeldief_manual',
+      '          - helper: plug_manual',
       '            is: true',
       '        action: []',
-      '      - alias: thuis',
+      '      - alias: home',
       '        action:',
-      '          - put: electrical.switches.smartplugkruimeldief.state',
+      '          - put: electrical.switches.plug.state',
       '            value: 0',
       ''
     ].join('\n')
@@ -671,15 +671,15 @@ test('latch_on_external_put sets helper on off as well as on', async () => {
     log: { info () {}, debug () {}, error () {} }
   })
   rt.load()
-  rt.setEnabled('kruimeldief', true)
-  await rt.handlePathChange('electrical.switches.smartplugkruimeldief.state', 0, 'mqtt.zigbee')
-  assert.equal(rt.helperValues.kruimeldief_manual, false)
-  await rt.handlePathChange('electrical.switches.smartplugkruimeldief.state', false, 'mqtt.zigbee')
-  assert.equal(rt.helperValues.kruimeldief_manual, false)
-  await rt.handlePathChange('electrical.switches.smartplugkruimeldief.state', 1, 'mqtt.zigbee')
-  assert.equal(rt.helperValues.kruimeldief_manual, true)
-  await rt.handlePathChange('electrical.switches.smartplugkruimeldief.state', 0, 'mqtt.zigbee')
-  assert.equal(rt.helperValues.kruimeldief_manual, true)
+  rt.setEnabled('plug_charge', true)
+  await rt.handlePathChange('electrical.switches.plug.state', 0, 'mqtt.zigbee')
+  assert.equal(rt.helperValues.plug_manual, false)
+  await rt.handlePathChange('electrical.switches.plug.state', false, 'mqtt.zigbee')
+  assert.equal(rt.helperValues.plug_manual, false)
+  await rt.handlePathChange('electrical.switches.plug.state', 1, 'mqtt.zigbee')
+  assert.equal(rt.helperValues.plug_manual, true)
+  await rt.handlePathChange('electrical.switches.plug.state', 0, 'mqtt.zigbee')
+  assert.equal(rt.helperValues.plug_manual, true)
   assert.equal(puts.length, 0)
 })
 
