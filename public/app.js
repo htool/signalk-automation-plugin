@@ -73,9 +73,15 @@ async function checkLogin () {
 
 function el (id) { return document.getElementById(id) }
 
+function displayResult (result) {
+  if (!result) return '—'
+  if (result === 'failure') return 'Failed'
+  return 'OK'
+}
+
 function badge (result) {
-  const r = result || '—'
-  return '<span class="badge ' + (result || '') + '">' + r + '</span>'
+  const klass = !result ? '' : result === 'failure' ? 'failure' : 'ok'
+  return '<span class="badge ' + klass + '">' + displayResult(result) + '</span>'
 }
 
 function fmtVal (v) {
@@ -136,15 +142,18 @@ function fmtRunRecord (t) {
 function fmtTime (iso) {
   if (!iso) return ''
   try {
-    return new Date(iso).toLocaleString('nl-NL', {
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return iso
+    return new Intl.DateTimeFormat('nl-NL', {
+      timeZone: 'Europe/Amsterdam',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      hour12: false
-    })
+      hourCycle: 'h23'
+    }).format(d)
   } catch (_) { return iso }
 }
 

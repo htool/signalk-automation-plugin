@@ -80,7 +80,8 @@ test('helper condition blocks action', async () => {
     sleep: async () => {},
     runScript: async () => ({ ok: true, value: '' })
   })
-  assert.equal(record.result, 'skipped')
+  assert.equal(record.result, 'ok')
+  assert.equal(record.reason, 'condition not met')
   assert.equal(puts.length, 0)
 })
 
@@ -121,13 +122,15 @@ test('starlink standby only at home harbour when not manual', async () => {
     'navigation.position': atHome,
     'automations.helpers.starlink_manual': true
   }))
-  assert.equal(homeManual.result, 'skipped')
+  assert.equal(homeManual.result, 'ok')
+  assert.equal(homeManual.reason, 'condition not met')
 
   const awayOk = await engine.evaluateAutomation(auto, ctx({
     'navigation.position': away,
     'automations.helpers.starlink_manual': false
   }))
-  assert.equal(awayOk.result, 'skipped')
+  assert.equal(awayOk.result, 'ok')
+  assert.equal(awayOk.reason, 'condition not met')
 })
 
 test('choose picks first matching branch', async () => {
@@ -288,13 +291,93 @@ test('verbose log shows trigger and ✓/✗ conditions', async () => {
     sleep: async () => {},
     runScript: async () => ({ ok: true, value: '' })
   })
-  assert.equal(record.result, 'skipped')
+  assert.equal(record.result, 'ok')
+  assert.equal(record.reason, 'no matching choose branch')
   assert.equal(record.firedBy, 'electrical.batteries.1.capacity.stateOfCharge = 0.72')
   assert.match(record.verboseLog, /trigger: electrical\.batteries\.1\.capacity\.stateOfCharge = 0\.72/)
   assert.match(record.verboseLog, /✓ electrical\.switches\.dolphinCharger\.voltage > 200 \(230\)/)
   assert.match(record.verboseLog, /✓ zone home_harbour/)
   assert.match(record.verboseLog, /✗ electrical\.batteries\.1\.capacity\.stateOfCharge < 0\.6 \(0\.72\)/)
   assert.equal(record.branches[0].picked, false)
+})
+
+test('any humidity branch still matches when another room is missing', async () => {
+  const auto = {
+    id: 'ontvochtiger',
+    alias: 'Ontvochtiger',
+    trigger: [{ path: 'environment.inside.hutvoor.humidity' }],
+    condition: [],
+    action: [],
+    choose: [
+      {
+        alias: 'vochtig',
+        conditions: [
+          {
+            any: [
+              { path: 'environment.inside.hutachterstuurboord.humidity', above: 0.69 },
+              { path: 'environment.inside.hutvoor.humidity', above: 0.69 }
+            ]
+          }
+        ],
+        action: [{ put: 'electrical.switches.smartplugontvochtiger.state', value: 1 }]
+      },
+      {
+        alias: 'droog',
+        action: [{ put: 'electrical.switches.smartplugontvochtiger.state', value: 0 }]
+      }
+    ]
+  }
+  const puts = []
+  const record = await engine.evaluateAutomation(auto, {
+    values: { 'environment.inside.hutvoor.humidity': 0.7 },
+    zones: {},
+    enabled: true,
+    trigger: { path: 'environment.inside.hutvoor.humidity', value: 0.7 },
+    now: Date.now(),
+    put: async (p, v) => { puts.push([p, v]) },
+    notify: async () => {},
+    setHelper: () => {},
+    sleep: async () => {},
+    runScript: async () => ({ ok: true, value: '' })
+  })
+  assert.equal(record.result, 'ok')
+  assert.equal(record.choose, 'vochtig')
+  assert.deepEqual(puts, [['electrical.switches.smartplugontvochtiger.state', 1]])
+  assert.match(record.verboseLog, /✓ any/)
+  assert.match(record.verboseLog, /✓ environment.inside.hutvoor.humidity > 0.69 \(0\.7\)/)
+})
+
+test('choose is OK when a compared path is missing', async () => {
+  const auto = {
+    id: 'charge',
+    trigger: [{ path: 'sensors.presence.dolphinshelly' }],
+    condition: [],
+    action: [],
+    choose: [
+      {
+        alias: 'thuis onder 60%',
+        conditions: [
+          { path: 'electrical.batteries.1.capacity.stateOfCharge', below: 0.6 }
+        ],
+        action: [{ put: 'electrical.switches.orionCharger.state', value: 1 }]
+      }
+    ]
+  }
+  const record = await engine.evaluateAutomation(auto, {
+    values: { 'sensors.presence.dolphinshelly': true },
+    zones: {},
+    enabled: true,
+    trigger: { path: 'sensors.presence.dolphinshelly', value: true },
+    now: Date.now(),
+    put: async () => {},
+    notify: async () => {},
+    setHelper: () => {},
+    sleep: async () => {},
+    runScript: async () => ({ ok: true, value: '' })
+  })
+  assert.equal(record.result, 'ok')
+  assert.equal(record.reason, 'no matching choose branch')
+  assert.equal(record.branches[0].conditions[0].error, 'missing')
 })
 
 test('cronMatch 04:00', () => {

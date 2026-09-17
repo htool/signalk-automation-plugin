@@ -356,7 +356,7 @@ test('choose policy re-evaluates after a no-branch skip; verbose logs the path',
     path: 'electrical.batteries.1.capacity.stateOfCharge',
     value: 0.7
   })
-  assert.equal(mid.result, 'skipped')
+  assert.equal(mid.result, 'ok')
   assert.equal(mid.reason, 'no matching choose branch')
   assert.equal(puts.length, 0)
   assert.equal(store.loadTraces(dataDir, 'shore_charge').length, 0)
@@ -367,7 +367,7 @@ test('choose policy re-evaluates after a no-branch skip; verbose logs the path',
     path: 'electrical.batteries.1.capacity.stateOfCharge',
     value: 0.7
   })
-  assert.equal(verboseSkip.result, 'skipped')
+  assert.equal(verboseSkip.result, 'ok')
   assert.equal(store.loadTraces(dataDir, 'shore_charge').length, 1)
   assert.match(verboseSkip.verboseLog, /trigger: electrical\.batteries\.1\.capacity\.stateOfCharge = 0\.7/)
   assert.match(verboseSkip.verboseLog, /✗ electrical\.batteries\.1\.capacity\.stateOfCharge < 0\.6/)
@@ -627,6 +627,60 @@ test('runNow PUT previous is live SK value, not a stale cache from a failed PUT'
   assert.equal(put.previous, 0)
   assert.equal(put.value, 1)
   assert.equal(put.changed, true)
+})
+
+test('latch_on_external_put sets helper on off as well as on', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-latch-'))
+  const yamlDir = path.join(dataDir, 'yaml')
+  fs.mkdirSync(yamlDir)
+  fs.writeFileSync(
+    path.join(yamlDir, 'a.yaml'),
+    [
+      'helpers:',
+      '  kruimeldief_manual:',
+      '    type: boolean',
+      '    default: false',
+      '    on_start: restore',
+      '    latch_on_external_put: electrical.switches.smartplugkruimeldief.state',
+      'automations:',
+      '  - id: kruimeldief',
+      '    trigger:',
+      '      - helper: kruimeldief_manual',
+      '    choose:',
+      '      - alias: handmatig',
+      '        conditions:',
+      '          - helper: kruimeldief_manual',
+      '            is: true',
+      '        action: []',
+      '      - alias: thuis',
+      '        action:',
+      '          - put: electrical.switches.smartplugkruimeldief.state',
+      '            value: 0',
+      ''
+    ].join('\n')
+  )
+  const puts = []
+  const rt = new Runtime({
+    pluginId: 'signalk-automation-plugin',
+    dataDir,
+    automationsDir: yamlDir,
+    scriptsDir: yamlDir,
+    put: async (p, v) => { puts.push([p, v]) },
+    notify: async () => {},
+    sleep: async () => {},
+    log: { info () {}, debug () {}, error () {} }
+  })
+  rt.load()
+  rt.setEnabled('kruimeldief', true)
+  await rt.handlePathChange('electrical.switches.smartplugkruimeldief.state', 0, 'mqtt.zigbee')
+  assert.equal(rt.helperValues.kruimeldief_manual, false)
+  await rt.handlePathChange('electrical.switches.smartplugkruimeldief.state', false, 'mqtt.zigbee')
+  assert.equal(rt.helperValues.kruimeldief_manual, false)
+  await rt.handlePathChange('electrical.switches.smartplugkruimeldief.state', 1, 'mqtt.zigbee')
+  assert.equal(rt.helperValues.kruimeldief_manual, true)
+  await rt.handlePathChange('electrical.switches.smartplugkruimeldief.state', 0, 'mqtt.zigbee')
+  assert.equal(rt.helperValues.kruimeldief_manual, true)
+  assert.equal(puts.length, 0)
 })
 
 
