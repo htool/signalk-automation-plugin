@@ -224,11 +224,14 @@ test('script action records args', async () => {
     notify: async () => {},
     setHelper: () => {},
     sleep: async () => {},
-    runScript: async () => ({ ok: true, value: 'ok', stdout: 'ok' })
+    runScript: async () => ({ ok: true, value: 'ok', stdout: 'ok', stderr: '' })
   })
   assert.equal(record.result, 'ok')
   assert.deepEqual(record.actions[0].args, ['on'])
   assert.equal(record.actions[0].file, 'dish.sh')
+  assert.match(record.verboseLog, /run dish\.sh on/)
+  assert.match(record.verboseLog, /stdout: ok/)
+  assert.match(record.verboseLog, /stderr: \(empty\)/)
 })
 
 test('script action failure from stderr', async () => {
@@ -248,10 +251,14 @@ test('script action failure from stderr', async () => {
     notify: async () => {},
     setHelper: () => {},
     sleep: async () => {},
-    runScript: async () => ({ ok: false, error: 'stderr: boom', stdout: '' })
+    runScript: async () => ({ ok: false, error: 'stderr: boom', stdout: 'partial', stderr: 'boom' })
   })
   assert.equal(record.result, 'failure')
   assert.match(record.reason, /stderr/)
+  assert.equal(record.actions[0].stderr, 'boom')
+  assert.match(record.verboseLog, /run x\.sh/)
+  assert.match(record.verboseLog, /stdout: partial/)
+  assert.match(record.verboseLog, /stderr: boom/)
 })
 
 test('unchanged PUT is not sent again', async () => {
