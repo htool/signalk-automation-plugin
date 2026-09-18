@@ -450,5 +450,41 @@ test('collectPaths includes PUT targets so live switch state is seeded', () => {
   assert.ok(paths.includes('sensors.presence.shore'))
 })
 
+test('put after delay can skip when if zone fails', async () => {
+  const auto = {
+    id: 'plug_charge',
+    trigger: [{ schedule: '5 8 * * *' }],
+    condition: [],
+    action: [
+      { put: 'electrical.switches.plug.state', value: 1 },
+      { delay: '1h' },
+      {
+        put: 'electrical.switches.plug.state',
+        value: 0,
+        if: [{ zone: 'home_harbour' }]
+      }
+    ],
+    choose: []
+  }
+  const puts = []
+  const slept = []
+  const record = await engine.evaluateAutomation(auto, {
+    values: { 'navigation.position': { latitude: 51.5, longitude: 4.5 } },
+    zones: { home_harbour: { lat: 52.1, lon: 4.9, radius: 30 } },
+    enabled: true,
+    trigger: { schedule: '5 8 * * *' },
+    now: new Date(2026, 8, 18, 8, 5, 0).getTime(),
+    put: async (p, v) => { puts.push([p, v]) },
+    notify: async () => {},
+    setHelper: () => {},
+    sleep: async (ms) => { slept.push(ms) },
+    runScript: async () => ({ ok: true, value: '' })
+  })
+  assert.equal(record.result, 'ok')
+  assert.deepEqual(puts, [['electrical.switches.plug.state', 1]])
+  assert.equal(slept.length, 1)
+  assert.equal(record.actions[2].skipped, true)
+})
+
 
 

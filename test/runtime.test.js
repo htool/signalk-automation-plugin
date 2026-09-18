@@ -683,4 +683,77 @@ test('latch_on_external_put sets helper on off as well as on', async () => {
   assert.equal(puts.length, 0)
 })
 
+test('mode single ignores a new trigger while delay is running', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-single-'))
+  const yamlDir = path.join(dataDir, 'yaml')
+  fs.mkdirSync(yamlDir)
+  fs.writeFileSync(
+    path.join(yamlDir, 'a.yaml'),
+    [
+      'automations:',
+      '  - id: plug_charge',
+      '    mode: single',
+      '    zones:',
+      '      home_harbour:',
+      '        lat: 52.1',
+      '        lon: 4.9',
+      '        radius: 30',
+      '    trigger:',
+      '      - schedule: "5 8 * * *"',
+      '      - schedule: "*/15 * * * *"',
+      '    choose:',
+      '      - alias: charge',
+      '        conditions:',
+      '          - schedule: "5 8 * * *"',
+      '        action:',
+      '          - put: electrical.switches.plug.state',
+      '            value: 1',
+      '          - delay: 1h',
+      '          - put: electrical.switches.plug.state',
+      '            value: 0',
+      '            if:',
+      '              - zone: home_harbour',
+      '      - alias: home',
+      '        action:',
+      '          - put: electrical.switches.plug.state',
+      '            value: 0',
+      ''
+    ].join('\n')
+  )
+  const puts = []
+  let release
+  const gate = new Promise((resolve) => { release = resolve })
+  const now = new Date(2026, 8, 18, 8, 5, 0).getTime()
+  const rt = new Runtime({
+    pluginId: 'signalk-automation-plugin',
+    dataDir,
+    automationsDir: yamlDir,
+    scriptsDir: yamlDir,
+    now: () => now,
+    put: async (p, v) => { puts.push([p, v]) },
+    notify: async () => {},
+    sleep: async () => { await gate },
+    log: { info () {}, debug () {}, error () {} }
+  })
+  rt.load()
+  rt.setEnabled('plug_charge', true)
+  rt.setPathValue('navigation.position', { latitude: 52.1, longitude: 4.9 })
+  const first = rt.maybeRun(rt.doc.automations[0], { schedule: '5 8 * * *' })
+  for (let i = 0; i < 20 && puts.length === 0; i++) {
+    await new Promise((r) => setImmediate(r))
+  }
+  assert.deepEqual(puts, [['electrical.switches.plug.state', 1]])
+  const skipped = await rt.maybeRun(rt.doc.automations[0], { schedule: '*/15 * * * *' })
+  assert.equal(skipped, undefined)
+  assert.deepEqual(puts, [['electrical.switches.plug.state', 1]])
+  release()
+  const record = await first
+  assert.equal(record.result, 'ok')
+  assert.equal(record.choose, 'charge')
+  assert.deepEqual(puts, [
+    ['electrical.switches.plug.state', 1],
+    ['electrical.switches.plug.state', 0]
+  ])
+})
+
 

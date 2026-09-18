@@ -103,3 +103,18 @@ test('round on a trigger must be a positive number', () => {
   assert.ok(doc.errors.some((e) => /round must be a positive number/.test(e.message)))
 })
 
+test('mode must be parallel, restart, or single', () => {
+  const doc = yaml.loadYamlText(
+    [
+      'automations:',
+      '  - id: plug_charge',
+      '    mode: banana',
+      '    trigger: []',
+      '    action: []',
+      ''
+    ].join('\n'),
+    'a.yaml'
+  )
+  assert.ok(doc.errors.some((e) => /mode must be parallel, restart, or single/.test(e.message)))
+})
+

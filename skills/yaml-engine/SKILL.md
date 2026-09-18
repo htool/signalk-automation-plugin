@@ -9,7 +9,7 @@
 - Add a test with every behaviour slice (`npm test`).
 - SK 2.x: GET via `signalKApiRoutes`, writes via `registerWithRouter`.
 - Site YAML and scripts live in `automationsDir` / `scriptsDir`, never in this plugin. `examples/` is fictional.
-- On/off is the webapp switch in plugin-data, not a YAML `enabled:` key.
+- `mode` is `parallel` (default), `restart`, or `single`. Action `if:` skips that step when clauses fail.
 
 ## Do not
 
