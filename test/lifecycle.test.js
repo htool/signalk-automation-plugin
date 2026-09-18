@@ -222,6 +222,75 @@ describe('plugin lifecycle', () => {
     assert.equal(snap.automations[0].verbose, false)
   })
 
+  it('PUT retries with path $source when SK reports multiple sources', async () => {
+    const yamlDir = path.join(dataDir, 'yaml')
+    fs.mkdirSync(yamlDir)
+    fs.writeFileSync(
+      path.join(yamlDir, 'a.yaml'),
+      [
+        'automations:',
+        '  - id: dehumidifier',
+        '    enabled: false',
+        '    trigger: []',
+        '    action:',
+        '      - put: electrical.switches.plug.state',
+        '        value: 1',
+        ''
+      ].join('\n')
+    )
+    const sources = []
+    app.getSelfPath = (p) => {
+      if (p !== 'electrical.switches.plug.state') return undefined
+      return {
+        value: 0,
+        $source: 'mqtt',
+        values: {
+          'signalk-control-panel-plugin': { value: 1, timestamp: '2026-09-17T22:44:06.528Z' },
+          mqtt: { value: 0, timestamp: '2026-09-18T06:19:49.428Z' }
+        }
+      }
+    }
+    app.putSelfPath = (p, v, cb, source) => {
+      sources.push(source || null)
+      if (!source) {
+        cb({
+          state: 'COMPLETED',
+          statusCode: 400,
+          message: 'there are multiple sources for the given path, but no source was specified in the request'
+        })
+        return
+      }
+      if (source === 'mqtt') {
+        cb({ state: 'COMPLETED', statusCode: 200 })
+        return
+      }
+      cb({ state: 'COMPLETED', statusCode: 400, message: 'unknown source' })
+    }
+    plugin.start({ automationsDir: yamlDir, scriptsDir: yamlDir })
+    const handlers = {}
+    plugin.registerWithRouter({
+      get () {},
+      put () {},
+      post (p, fn) { handlers[p] = fn }
+    })
+    const ran = await new Promise((resolve, reject) => {
+      const res = {
+        statusCode: 200,
+        setHeader () {},
+        end (s) {
+          try {
+            resolve({ status: res.statusCode, json: JSON.parse(s) })
+          } catch (err) {
+            reject(err)
+          }
+        }
+      }
+      handlers['/automations/:id/run']({ params: { id: 'dehumidifier' } }, res)
+    })
+    assert.equal(ran.json.result, 'ok')
+    assert.deepEqual(sources, [null, 'mqtt'])
+  })
+
   it('PUT treats SK 200 reply as success and 405 as failure', async () => {
     const yamlDir = path.join(dataDir, 'yaml')
     fs.mkdirSync(yamlDir)

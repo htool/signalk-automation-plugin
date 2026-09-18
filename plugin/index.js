@@ -305,15 +305,36 @@ module.exports = function (app) {
     })
   }
 
-  function putPath (p, value) {
-    return new Promise((resolve, reject) => {
-      if (typeof app.putSelfPath !== 'function') {
-        app.handleMessage(PLUGIN_ID, {
-          updates: [{ values: [{ path: p, value }] }]
-        })
-        resolve()
-        return
+  function isMultipleSources (err) {
+    return /multiple sources for the given path/i.test(String((err && err.message) || err || ''))
+  }
+
+  function putSources (p) {
+    const out = []
+    const seen = Object.create(null)
+    const add = (s) => {
+      if (!s) return
+      const id = String(s)
+      if (seen[id] || id.includes(PLUGIN_ID)) return
+      seen[id] = true
+      out.push(id)
+    }
+    const node = typeof app.getSelfPath === 'function' ? app.getSelfPath(p) : null
+    if (node && typeof node === 'object' && !Array.isArray(node)) {
+      add(node.$source)
+      const vals = node.values
+      if (vals && typeof vals === 'object') {
+        Object.keys(vals)
+          .sort((a, b) => Number(/^mqtt\b/i.test(b)) - Number(/^mqtt\b/i.test(a)))
+          .forEach(add)
       }
+    }
+    if (runtime && runtime.values) add(runtime.values[p + '.$source'])
+    return out
+  }
+
+  function callPutSelf (p, value, source) {
+    return new Promise((resolve, reject) => {
       let settled = false
       const finish = (err) => {
         if (settled) return
@@ -332,7 +353,9 @@ module.exports = function (app) {
         finish(null)
       }
       try {
-        const ret = app.putSelfPath(p, value, fromReply)
+        const ret = source
+          ? app.putSelfPath(p, value, fromReply, source)
+          : app.putSelfPath(p, value, fromReply)
         if (ret && typeof ret.then === 'function') {
           ret.then(fromReply, finish)
         }
@@ -340,6 +363,30 @@ module.exports = function (app) {
         finish(err)
       }
     })
+  }
+
+  async function putPath (p, value) {
+    if (typeof app.putSelfPath !== 'function') {
+      app.handleMessage(PLUGIN_ID, {
+        updates: [{ values: [{ path: p, value }] }]
+      })
+      return
+    }
+    try {
+      await callPutSelf(p, value)
+    } catch (err) {
+      if (!isMultipleSources(err)) throw err
+      let last = err
+      for (const source of putSources(p)) {
+        try {
+          await callPutSelf(p, value, source)
+          return
+        } catch (e) {
+          last = e
+        }
+      }
+      throw last
+    }
   }
 
   function notify (p, state, message) {
