@@ -20,6 +20,7 @@ Ordered slices. **Tests on every feature slice.** Docs-only slices do not change
 - Site YAML lives in a separate `automationsDir` git (on/off in plugin-data, not YAML)
 - Webapp run log polls `lastRun` (~1.5s) and refreshes traces when an automation has run
 - `mode: parallel` (default) / `restart` / `single`; action `if:` skips a step when clauses fail
+- Run-log shows script `args` (`run dish.sh on`)
 
 ## Next
 

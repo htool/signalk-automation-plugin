@@ -98,7 +98,10 @@ function fmtActions (t) {
     if (a.type === 'helper') return 'helper ' + a.helper + ' = ' + fmtVal(a.value)
     if (a.type === 'notify') return 'notify ' + (a.path || '') + ' ' + (a.state || '')
     if (a.type === 'delay') return a.skipped ? 'delay skipped (' + a.ms + ' ms)' : 'delay ' + a.ms + ' ms'
-    if (a.type === 'run') return 'run ' + (a.file || '')
+    if (a.type === 'run') {
+      const extra = (a.args && a.args.length) ? ' ' + a.args.join(' ') : ''
+      return 'run ' + (a.file || '') + extra
+    }
     return a.type || 'action'
   }).join('\n')
 }

@@ -207,6 +207,30 @@ test('zone matches lat/lon GPS as well as latitude/longitude', async () => {
   assert.ok(record.conditions[0].actual.distance_m < 5)
 })
 
+test('script action records args', async () => {
+  const auto = {
+    id: 'run',
+    trigger: [],
+    condition: [],
+    action: [{ run: { file: 'dish.sh', args: ['on'] } }],
+    choose: []
+  }
+  const record = await engine.evaluateAutomation(auto, {
+    values: {},
+    zones: {},
+    enabled: true,
+    now: Date.now(),
+    put: async () => {},
+    notify: async () => {},
+    setHelper: () => {},
+    sleep: async () => {},
+    runScript: async () => ({ ok: true, value: 'ok', stdout: 'ok' })
+  })
+  assert.equal(record.result, 'ok')
+  assert.deepEqual(record.actions[0].args, ['on'])
+  assert.equal(record.actions[0].file, 'dish.sh')
+})
+
 test('script action failure from stderr', async () => {
   const auto = {
     id: 'run',
