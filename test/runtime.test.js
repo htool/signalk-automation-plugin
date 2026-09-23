@@ -756,4 +756,53 @@ test('mode single ignores a new trigger while delay is running', async () => {
   ])
 })
 
+test('pulse helper is false after the action that clears it, and onHelper sees the live value', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-pulse-'))
+  const yamlDir = path.join(dataDir, 'yaml')
+  fs.mkdirSync(yamlDir)
+  fs.writeFileSync(
+    path.join(yamlDir, 'a.yaml'),
+    [
+      'helpers:',
+      '  teltonika_reboot:',
+      '    type: boolean',
+      '    default: false',
+      '    on_start: default',
+      'automations:',
+      '  - id: teltonika_reboot',
+      '    mode: single',
+      '    trigger:',
+      '      - helper: teltonika_reboot',
+      '        is: true',
+      '    action:',
+      '      - run: echo.sh',
+      '      - helper: teltonika_reboot',
+      '        value: false',
+      ''
+    ].join('\n')
+  )
+  fs.writeFileSync(path.join(yamlDir, 'echo.sh'), '#!/bin/sh\necho ok\n')
+  fs.chmodSync(path.join(yamlDir, 'echo.sh'), 0o755)
+  const emitted = []
+  const rt = new Runtime({
+    pluginId: 'signalk-automation-plugin',
+    dataDir,
+    automationsDir: yamlDir,
+    scriptsDir: yamlDir,
+    put: async () => {},
+    notify: async () => {},
+    sleep: async () => {},
+    onHelper: (id, value) => { emitted.push([id, value]) }
+  })
+  rt.load()
+  rt.setEnabled('teltonika_reboot', true)
+  const value = await rt.setHelper('teltonika_reboot', true)
+  assert.equal(rt.helperValues.teltonika_reboot, false)
+  assert.equal(value, false)
+  assert.equal(emitted[0][0], 'teltonika_reboot')
+  assert.equal(emitted[0][1], true)
+  assert.equal(emitted[emitted.length - 1][1], false)
+  assert.ok(emitted.some((e) => e[0] === 'teltonika_reboot' && e[1] === false))
+})
+
 

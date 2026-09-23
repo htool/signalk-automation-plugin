@@ -53,6 +53,7 @@ describe('plugin lifecycle', () => {
   it('helper PUT handler returns PENDING so SK fixReply does not crash', () => {
     const src = fs.readFileSync(path.join(__dirname, '../plugin/index.js'), 'utf8')
     assert.match(src, /registerPutHandler[\s\S]*return \{ state: 'PENDING' \}/)
+    assert.match(src, /runtime\.helperValues\[id\]/)
   })
 
   it('webapp appIcon file exists', () => {

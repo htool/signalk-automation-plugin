@@ -426,6 +426,7 @@ module.exports = function (app) {
       scriptTimeoutSeconds: options.scriptTimeoutSeconds,
       put: putPath,
       notify,
+      onHelper: (id, value) => emitHelper(id, value),
       log: {
         debug: app.debug ? app.debug.bind(app) : () => {},
         error: app.error ? app.error.bind(app) : console.error,
@@ -461,7 +462,10 @@ module.exports = function (app) {
         app.registerPutHandler('vessels.self', helpers.helperPath(id), (context, p, v, cb) => {
           Promise.resolve(runtime.setHelper(id, v))
             .then((next) => {
-              emitHelper(id, next)
+              const live = Object.prototype.hasOwnProperty.call(runtime.helperValues, id)
+                ? runtime.helperValues[id]
+                : next
+              emitHelper(id, live)
               if (cb) cb({ state: 'COMPLETED' })
             })
             .catch((err) => {
