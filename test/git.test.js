@@ -69,3 +69,28 @@ test('diffRange is only the automationsDir subtree', () => {
   assert.match(d.diff, /id: other/)
   assert.doesNotMatch(d.diff, /plugin\/index/)
 })
+
+test('repo paths still match when reached through a tmpdir symlink', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-git-real-'))
+  const examples = path.join(root, 'examples')
+  fs.mkdirSync(examples)
+  fs.writeFileSync(
+    path.join(examples, 'automations.yaml'),
+    ['automations:', '  - id: keep_me', '    trigger: []', '    action: []', ''].join('\n')
+  )
+  initRepo(root)
+  gitCmd(['add', '.'], root)
+  gitCmd(['commit', '-m', 'yaml'], root)
+  const sha = gitCmd(['rev-parse', 'HEAD'], root)
+  const link = root + '-link'
+  try {
+    fs.symlinkSync(root, link, 'dir')
+  } catch (err) {
+    if (err && (err.code === 'EPERM' || err.code === 'EACCES')) return
+    throw err
+  }
+  const viaLink = path.join(link, 'examples')
+  assert.equal(git.archiveTreeish(viaLink, sha), sha + ':examples')
+  const d = git.diffRange(viaLink, sha, sha)
+  assert.equal(d.diff, '')
+})
