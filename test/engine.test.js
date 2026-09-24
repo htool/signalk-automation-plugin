@@ -517,5 +517,42 @@ test('put after delay can skip when if zone fails', async () => {
   assert.equal(record.actions[2].skipped, true)
 })
 
+test('skipped delay still runs the put after it', async () => {
+  const auto = {
+    id: 'plug_charge',
+    trigger: [],
+    condition: [],
+    action: [
+      { put: 'electrical.switches.plug.state', value: 1 },
+      { delay: '1h' },
+      { put: 'electrical.switches.plug.state', value: 0 }
+    ],
+    choose: []
+  }
+  const puts = []
+  const record = await engine.evaluateAutomation(auto, {
+    values: { 'electrical.switches.plug.state': 0 },
+    zones: {},
+    enabled: true,
+    trigger: { manual: true },
+    skipDelay: true,
+    skipUnchanged: false,
+    put: async (p, v) => { puts.push([p, v]) },
+    notify: async () => {},
+    setHelper: () => {},
+    sleep: async () => {
+      throw new Error('sleep should not run when skipDelay')
+    },
+    runScript: async () => ({ ok: true, value: '' })
+  })
+  assert.equal(record.result, 'ok')
+  assert.equal(record.actions[1].skipped, true)
+  assert.equal(record.actions[1].stop, undefined)
+  assert.deepEqual(puts, [
+    ['electrical.switches.plug.state', 1],
+    ['electrical.switches.plug.state', 0]
+  ])
+})
+
 
 

@@ -275,6 +275,8 @@ test('runNow ignores enabled:false and skips triggers', async () => {
       '      - put: electrical.switches.charger.state',
       '        value: true',
       '      - delay: 15m',
+      '      - put: electrical.switches.charger.state',
+      '        value: false',
       ''
     ].join('\n')
   )
@@ -297,9 +299,12 @@ test('runNow ignores enabled:false and skips triggers', async () => {
   const record = await rt.runNow('shore_charge')
   assert.equal(record.result, 'ok')
   assert.equal(record.manual, true)
-  assert.deepEqual(puts, [['electrical.switches.charger.state', true]])
+  assert.deepEqual(puts, [
+    ['electrical.switches.charger.state', true],
+    ['electrical.switches.charger.state', false]
+  ])
   assert.equal(slept, false)
-  assert.equal(record.actions.some((a) => a.type === 'delay' && a.skipped), true)
+  assert.equal(record.actions.some((a) => a.type === 'delay' && a.skipped && !a.stop), true)
 })
 
 test('choose policy re-evaluates after a no-branch skip; verbose logs the path', async () => {
