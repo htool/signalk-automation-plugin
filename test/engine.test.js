@@ -4,6 +4,16 @@ const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const engine = require('../lib/engine')
 
+test('valueUnchanged treats switch aliases as the same state', () => {
+  assert.equal(engine.valueUnchanged(undefined, true), false)
+  assert.equal(engine.valueUnchanged(true, true), true)
+  assert.equal(engine.valueUnchanged(true, 1), true)
+  assert.equal(engine.valueUnchanged(0, false), true)
+  assert.equal(engine.valueUnchanged(true, false), false)
+  assert.equal(engine.valueUnchanged({ a: 1 }, { a: 1 }), true)
+  assert.equal(engine.valueUnchanged({ a: 1 }, { a: 2 }), false)
+})
+
 test('put valueFrom copies another path', async () => {
   const auto = {
     id: 'anchor',
@@ -479,6 +489,73 @@ test('collectPaths includes PUT targets so live switch state is seeded', () => {
   })
   assert.ok(paths.includes('electrical.switches.charger.state'))
   assert.ok(paths.includes('sensors.presence.shore'))
+})
+
+test('action if triggered matches the path that kicked the run', async () => {
+  const auto = {
+    id: 'vhf_scan_marked',
+    trigger: [
+      { helper: 'vhf_scan_marked' },
+      { path: 'communication.vhf.scanMode' }
+    ],
+    condition: [],
+    action: [
+      {
+        put: 'communication.vhf.scanMode',
+        value: 'marked',
+        if: [
+          { triggered: { helper: 'vhf_scan_marked' } },
+          { helper: 'vhf_scan_marked', is: true }
+        ]
+      },
+      {
+        helper: 'vhf_scan_marked',
+        value: true,
+        if: [
+          { path: 'communication.vhf.scanMode', is: 'marked' }
+        ]
+      }
+    ],
+    choose: []
+  }
+  const puts = []
+  const helpers = []
+  const fromHelper = await engine.evaluateAutomation(auto, {
+    values: {
+      'automations.helpers.vhf_scan_marked': true,
+      'communication.vhf.scanMode': ''
+    },
+    zones: {},
+    enabled: true,
+    trigger: { path: 'automations.helpers.vhf_scan_marked', value: true },
+    put: async (p, v) => { puts.push([p, v]) },
+    notify: async () => {},
+    setHelper: (id, v) => { helpers.push([id, v]) },
+    sleep: async () => {},
+    runScript: async () => ({ ok: true, value: '' })
+  })
+  assert.equal(fromHelper.result, 'ok')
+  assert.deepEqual(puts, [['communication.vhf.scanMode', 'marked']])
+
+  puts.length = 0
+  helpers.length = 0
+  const fromRadio = await engine.evaluateAutomation(auto, {
+    values: {
+      'automations.helpers.vhf_scan_marked': false,
+      'communication.vhf.scanMode': 'marked'
+    },
+    zones: {},
+    enabled: true,
+    trigger: { path: 'communication.vhf.scanMode', value: 'marked' },
+    put: async (p, v) => { puts.push([p, v]) },
+    notify: async () => {},
+    setHelper: (id, v) => { helpers.push([id, v]) },
+    sleep: async () => {},
+    runScript: async () => ({ ok: true, value: '' })
+  })
+  assert.equal(fromRadio.result, 'ok')
+  assert.deepEqual(puts, [])
+  assert.deepEqual(helpers, [['vhf_scan_marked', true]])
 })
 
 test('put after delay can skip when if zone fails', async () => {

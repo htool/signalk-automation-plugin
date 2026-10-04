@@ -463,12 +463,63 @@ test('mixed path + schedule: path change runs off the cron minute', async () => 
   })
   rt.load()
   rt.setEnabled('shore_charge', true)
-  rt.setPathValue('sensors.presence.shore', true)
   await rt.handlePathChange('sensors.presence.shore', true)
   assert.equal(puts.length, 1)
   rt.setPathValue('electrical.switches.charger.state', 0)
   now = new Date(2026, 8, 15, 15, 15, 0).getTime()
   await rt.tickSchedule(new Date(now))
+  assert.equal(puts.length, 2)
+})
+
+test('same path value does not retrigger', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-sameval-'))
+  const yamlDir = path.join(dataDir, 'yaml')
+  fs.mkdirSync(yamlDir)
+  fs.writeFileSync(
+    path.join(yamlDir, 'a.yaml'),
+    [
+      'automations:',
+      '  - id: shore_charge',
+      '    trigger:',
+      '      - path: sensors.presence.shore',
+      '    choose:',
+      '      - alias: on',
+      '        conditions:',
+      '          - path: sensors.presence.shore',
+      '            is: true',
+      '        action:',
+      '          - put: electrical.switches.charger.state',
+      '            value: 1',
+      '      - alias: off',
+      '        conditions:',
+      '          - path: sensors.presence.shore',
+      '            is: false',
+      '        action:',
+      '          - put: electrical.switches.charger.state',
+      '            value: 0',
+      ''
+    ].join('\n')
+  )
+  const puts = []
+  const rt = new Runtime({
+    pluginId: 'signalk-automation-plugin',
+    dataDir,
+    automationsDir: yamlDir,
+    scriptsDir: yamlDir,
+    put: async (p, v) => { puts.push([p, v]) },
+    notify: async () => {},
+    sleep: async () => {},
+    log: { info () {}, debug () {}, error () {} }
+  })
+  rt.load()
+  rt.setEnabled('shore_charge', true)
+  await rt.handlePathChange('sensors.presence.shore', true)
+  assert.equal(puts.length, 1)
+  await rt.handlePathChange('sensors.presence.shore', true)
+  assert.equal(puts.length, 1)
+  await rt.handlePathChange('sensors.presence.shore', 1)
+  assert.equal(puts.length, 1)
+  await rt.handlePathChange('sensors.presence.shore', false)
   assert.equal(puts.length, 2)
 })
 
@@ -579,7 +630,6 @@ test('trip_prep helper turns home charging on until nearly full', async () => {
   rt.setPathValue('navigation.position', { latitude: 52.1, longitude: 4.9 })
   await rt.setHelper('trip_prep', true)
   assert.deepEqual(puts, [['electrical.switches.charger.state', true]])
-  rt.setPathValue('electrical.batteries.1.capacity.stateOfCharge', 0.99)
   await rt.handlePathChange('electrical.batteries.1.capacity.stateOfCharge', 0.99)
   assert.equal(puts[1][1], false)
   assert.equal(rt.helperValues.trip_prep, false)
