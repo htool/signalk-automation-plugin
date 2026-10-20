@@ -31,8 +31,9 @@ Not Node-RED. Not a Home Assistant YAML clone. Actions are Signal K PUTs, helper
 | Allowed scripts directory | Only relative `run.file` paths under this dir |
 | Decision records to keep | Ring buffer per automation |
 | Script timeout | Seconds |
+| Startup silence | Seconds after start (default 60, 0 = off) during which path triggers do not fire; values are still recorded |
 
-Do not paste automations into the admin form. Runtime state is `~/.signalk/plugin-config-data/signalk-automation-plugin/` (`state.json`, `live/`, `traces/`).
+Do not paste automations into the admin form. Runtime state is `~/.signalk/plugin-config-data/signalk-automation-plugin/` (`state.json`, `live/`, `traces/`). `state.json` also keeps the last seen value of each trigger path (`pathValues`), so the same value republished after a restart does not re-trigger.
 
 ## Example
 

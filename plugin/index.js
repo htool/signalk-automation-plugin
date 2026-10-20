@@ -84,6 +84,13 @@ module.exports = function (app) {
         title: 'Script timeout (seconds)',
         default: 30,
         minimum: 1
+      },
+      startupSilence: {
+        type: 'number',
+        title: 'Startup silence (seconds)',
+        description: 'After start, path triggers do not fire for this many seconds (values are still recorded). 0 = off.',
+        default: 60,
+        minimum: 0
       }
     }
   }
@@ -424,6 +431,7 @@ module.exports = function (app) {
       scriptsDir: options.scriptsDir || '',
       traceCount: options.traceCount,
       scriptTimeoutSeconds: options.scriptTimeoutSeconds,
+      startupSilenceSeconds: options.startupSilence == null ? 60 : options.startupSilence,
       put: putPath,
       notify,
       onHelper: (id, value) => emitHelper(id, value),

@@ -861,3 +861,58 @@ test('pulse helper is false after the action that clears it, and onHelper sees t
 })
 
 
+
+test('remembered trigger path value survives restart; startup silence blocks triggers', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-pv-'))
+  const yamlDir = path.join(dataDir, 'yaml')
+  fs.mkdirSync(yamlDir)
+  fs.writeFileSync(path.join(yamlDir, 'a.yaml'), [
+    'automations:',
+    '  - id: away',
+    '    trigger:',
+    '      - path: sensors.presence.phone',
+    '    action: []',
+    ''
+  ].join('\n'))
+  let clock = 1000000
+  const opts = (silence) => ({
+    pluginId: 'signalk-automation-plugin',
+    dataDir,
+    automationsDir: yamlDir,
+    scriptsDir: yamlDir,
+    startupSilenceSeconds: silence,
+    now: () => clock,
+    put: async () => {},
+    notify: async () => {},
+    sleep: async () => {}
+  })
+  const a = new Runtime(opts(0))
+  a.load()
+  a.setEnabled('away', true)
+  const runs = []
+  a.maybeRun = async (auto, t) => { runs.push(t.value) }
+  await a.handlePathChange('sensors.presence.phone', true, 'x')
+  await a.handlePathChange('sensors.presence.phone', false, 'x')
+  assert.deepEqual(runs, [true, false])
+  assert.equal(store.loadState(dataDir).pathValues['sensors.presence.phone'], false)
+
+  const b = new Runtime(opts(0))
+  b.load()
+  const runsB = []
+  b.maybeRun = async (auto, t) => { runsB.push(t.value) }
+  await b.handlePathChange('sensors.presence.phone', false, 'x')
+  assert.deepEqual(runsB, [])
+  await b.handlePathChange('sensors.presence.phone', true, 'x')
+  assert.deepEqual(runsB, [true])
+
+  const c = new Runtime(opts(60))
+  c.load()
+  const runsC = []
+  c.maybeRun = async (auto, t) => { runsC.push(t.value) }
+  await c.handlePathChange('sensors.presence.phone', false, 'x')
+  assert.deepEqual(runsC, [])
+  assert.equal(store.loadState(dataDir).pathValues['sensors.presence.phone'], false)
+  clock += 61000
+  await c.handlePathChange('sensors.presence.phone', true, 'x')
+  assert.deepEqual(runsC, [true])
+})
