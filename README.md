@@ -33,7 +33,7 @@ Not Node-RED. Not a Home Assistant YAML clone. Actions are Signal K PUTs, helper
 | Script timeout | Seconds |
 | Startup silence | Seconds after start (default 60, 0 = off) during which path triggers do not fire; values are still recorded |
 
-Do not paste automations into the admin form. Runtime state is `~/.signalk/plugin-config-data/signalk-automation-plugin/` (`state.json`, `live/`, `traces/`). `state.json` also keeps the last seen value of each trigger path (`pathValues`), so the same value republished after a restart does not re-trigger.
+Do not paste automations into the admin form. Runtime state is `~/.signalk/plugin-config-data/signalk-automation-plugin/` (`state.json`, `deadlines.json`, `live/`, `traces/`). `state.json` also keeps the last seen value of each trigger path (`pathValues`), so the same value republished after a restart does not re-trigger. `deadlines.json` holds in-progress `delay` steps (when they are due, and the actions still left). After a Signal K restart those steps continue: a future deadline is waited out, a deadline that already passed runs on startup.
 
 ## Example
 

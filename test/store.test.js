@@ -33,6 +33,36 @@ test('traces keep newest first up to max', () => {
   assert.equal(traces[1].ts, '2')
 })
 
+test('deadlines roundtrip and drop corrupt files', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-dead-'))
+  assert.deepEqual(store.loadDeadlines(dir), [])
+  fs.mkdirSync(dir, { recursive: true })
+  fs.writeFileSync(path.join(dir, 'deadlines.json'), '{', 'utf8')
+  assert.deepEqual(store.loadDeadlines(dir), [])
+  const item = {
+    id: 'a',
+    automationId: 'vhf_charge',
+    deadline: 1000,
+    actions: [{ put: 'electrical.switches.smartplugVHF.state', value: 0 }]
+  }
+  store.upsertDeadline(dir, item)
+  store.upsertDeadline(dir, {
+    id: 'b',
+    automationId: 'other',
+    deadline: 2000,
+    actions: []
+  })
+  store.upsertDeadline(dir, Object.assign({}, item, { deadline: 1500 }))
+  let rows = store.loadDeadlines(dir)
+  assert.equal(rows.length, 2)
+  assert.equal(rows.find((r) => r.id === 'a').deadline, 1500)
+  assert.equal(store.removeDeadline(dir, 'a'), true)
+  assert.equal(store.removeDeadline(dir, 'a'), false)
+  rows = store.loadDeadlines(dir)
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].id, 'b')
+})
+
 test('switch log keeps newest first up to max', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-sw-'))
   store.appendSwitchLog(dir, { ts: '1', path: 'a' }, 2)

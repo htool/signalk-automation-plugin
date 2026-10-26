@@ -21,6 +21,7 @@ Ordered slices. **Tests on every feature slice.** Docs-only slices do not change
 - Webapp run log polls `lastRun` (~1.5s) and refreshes traces when an automation has run
 - `mode: parallel` (default) / `restart` / `single`; action `if:` skips a step when clauses fail
 - Run-log shows script `args` (`run dish.sh on`)
+- Action `delay` survives restart: `deadlines.json` re-arms or catch-up; cleared when the wait ends or the run is superseded
 
 ## Next
 

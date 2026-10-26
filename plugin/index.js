@@ -447,6 +447,9 @@ module.exports = function (app) {
     runtime.load()
     runtime.seedFromSelf()
     rewireAfterYamlChange()
+    // Register open deadlines before the start pass so a synthetic
+    // re-evaluation does not supersede a run that is waiting to finish.
+    runtime.resumeDeadlines().catch((err) => app.error && app.error(err))
     runtime.evaluateOnStart().catch((err) => app.error && app.error(err))
 
     timers.push(setInterval(() => {
@@ -531,6 +534,11 @@ module.exports = function (app) {
         f()
       } catch (_) {}
     })
+    if (runtime) {
+      try {
+        runtime.halt()
+      } catch (_) {}
+    }
     runtime = null
   }
 
