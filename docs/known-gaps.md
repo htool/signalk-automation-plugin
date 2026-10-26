@@ -1,6 +1,7 @@
 # Known gaps
 
 - No HA templates, `wait_for_trigger`, or `mode: queued`. `mode` is `parallel` (default), `restart`, or `single`. `for:` only on the first trigger that has it.
+- A `delay` entry is removed when the wait ends. A crash while the following actions run (before the next `delay`) is not replayed. `if:` on that tail is evaluated when it runs, including after resume (no GPS yet fails a zone check and skips that step). Plugin stop keeps the file; `mode: restart` drops the superseded run so it cannot fire again.
 - Action `if:` skips that step when the clauses fail (used after `delay` so an off does not fire underway).
 - Script `allow_stderr` does not exist; any stderr fails the run.
 - PUT source tagging is `$source` contains plugin id. Another plugin that PUTs the latched path will look “external” and set the helper.
