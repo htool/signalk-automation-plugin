@@ -21,7 +21,11 @@
   "homepage": "https://github.com/htool/signalk-automation-plugin#readme",
   "signalk": {
     "appIcon": "icon.png",
-    "displayName": "Automations"
+    "displayName": "Automations",
+    "recommends": [
+      "signalk-control-panel-plugin",
+      "signalk-precense-plugin"
+    ]
   },
   "signalk-plugin-enabled-by-default": false,
   "files": [
